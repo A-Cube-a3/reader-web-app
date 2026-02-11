@@ -1,0 +1,26 @@
+# Logs
+logs/
+*.log
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+client/lerna-debug.log*
+
+node_modules
+dist
+clientdist-ssr
+*.local
+
+server/target/
+
+.env
+.env.*
+*.env
+
+.idea/
+*.iml
+.vscode/
+
+.DS_Store
+Thumbs.db
