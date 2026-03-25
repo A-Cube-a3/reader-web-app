@@ -62,7 +62,7 @@ public class BookService {
     }
 
     /**
-     * Retrieves all books from the database.
+     * This retrieves all books from the database.
      */
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
