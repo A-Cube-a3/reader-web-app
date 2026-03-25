@@ -24,3 +24,5 @@ server/target/
 
 .DS_Store
 Thumbs.db
+
+server/storage/
