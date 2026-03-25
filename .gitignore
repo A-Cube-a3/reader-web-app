@@ -6,7 +6,7 @@ client/yarn-debug.log*
 client/yarn-error.log*
 client/pnpm-debug.log*
 client/lerna-debug.log*
-
+server/src/main/resources/application.properties
 node_modules
 dist
 clientdist-ssr
