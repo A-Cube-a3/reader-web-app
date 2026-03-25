@@ -55,6 +55,7 @@ public class BookService {
                 .uploadedAt(LocalDateTime.now())
                 .build();
 
+        @SuppressWarnings("null")
         Book savedBook = bookRepository.save(book);
         logger.info("Book saved to MongoDB with id: {}", savedBook.getId());
 
@@ -71,6 +72,7 @@ public class BookService {
     /**
      * Retrieves a single book by its ID.
      */
+    @SuppressWarnings("null")
     public Optional<Book> getBookById(String id) {
         return bookRepository.findById(id);
     }
