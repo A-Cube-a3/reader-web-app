@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import "./App.css";
-
-const API_BASE_URL = 'http://localhost:8080/api'
+import { uploadLegacyBook } from './services/legacyBooksApi.js'
 
 export default function App() {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -32,24 +31,11 @@ export default function App() {
     setResponse(null)
     setError(null)
 
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-
     try {
-      const res = await fetch(`${API_BASE_URL}/books/upload`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Upload failed.')
-      } else {
-        setResponse(data)
-      }
+      const data = await uploadLegacyBook(selectedFile)
+      setResponse(data)
     } catch (err) {
-      setError('Network error: Could not reach the backend. Is it running on port 8080?',err)
+      setError(err instanceof Error ? err.message : 'Upload failed.')
     } finally {
       setUploading(false)
     }
@@ -65,11 +51,15 @@ export default function App() {
   <div className="page">
     <div className="card">
       <h1 className="title">📚 Reader App</h1>
-      <p className="subtitle">Phase 1 — File Upload MVP</p>
+      <p className="subtitle">Phase 1 — Stabilized legacy cloud upload</p>
+      <p>
+        This temporary upload needs the optional backend. Local, offline import replaces it in Phase 2.
+      </p>
 
       <div className="section">
-        <label className="label">Select a book to upload</label>
+        <label className="label" htmlFor="book-upload">Select a book to upload</label>
         <input
+          id="book-upload"
           type="file"
           accept=".pdf,.epub"
           onChange={handleFileChange}
@@ -87,7 +77,7 @@ export default function App() {
         disabled={uploading || !selectedFile}
         className={`button ${uploading || !selectedFile ? "buttonDisabled" : ""}`}
       >
-        {uploading ? "Uploading..." : "Upload Book"}
+        {uploading ? "Uploading..." : "Upload to Legacy Backend"}
       </button>
 
       {error && (
@@ -108,4 +98,3 @@ export default function App() {
   </div>
   );
 }
-
