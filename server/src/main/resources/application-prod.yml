@@ -1,0 +1,13 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+reader:
+  storage:
+    path: ${BOOK_STORAGE_PATH}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}

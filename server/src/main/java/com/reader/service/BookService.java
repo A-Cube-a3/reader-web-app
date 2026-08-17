@@ -1,5 +1,6 @@
 package com.reader.service;
 
+import com.reader.exception.InvalidBookUploadException;
 import com.reader.model.Book;
 import com.reader.repository.BookRepository;
 import com.reader.storage.FileStorageService;
@@ -8,9 +9,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -34,32 +35,41 @@ public class BookService {
      *
      * @param file the uploaded multipart file
      * @return the saved Book document
-     * @throws IOException              if the file cannot be stored
-     * @throws IllegalArgumentException if the file type is unsupported
      */
-    public Book uploadBook(MultipartFile file) throws IOException {
-        String originalFileName = file.getOriginalFilename();
-        logger.debug("Processing upload for file: {}", originalFileName);
+    public Book uploadBook(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidBookUploadException("The book file must not be empty");
+        }
+
+        String originalFileName = normalizeFileName(file.getOriginalFilename());
 
         String fileType = detectFileType(originalFileName);
-        String storedFilePath = fileStorageService.saveFile(file);
+        String storedFilePath = fileStorageService.saveFile(file, fileType);
 
         String title = deriveTitle(originalFileName);
 
-        Book book = Book.builder()
-                .title(title)
-                .type(fileType)
-                .filePath(storedFilePath)
-                .originalFileName(originalFileName)
-                .fileSize(file.getSize())
-                .uploadedAt(LocalDateTime.now())
-                .build();
+        Book book = new Book(
+                null,
+                title,
+                fileType,
+                storedFilePath,
+                originalFileName,
+                file.getSize(),
+                LocalDateTime.now()
+        );
 
-        @SuppressWarnings("null")
-        Book savedBook = bookRepository.save(book);
-        logger.info("Book saved to MongoDB with id: {}", savedBook.getId());
-
-        return savedBook;
+        try {
+            Book savedBook = bookRepository.save(book);
+            logger.info("Stored legacy book metadata with id {}", savedBook.getId());
+            return savedBook;
+        } catch (RuntimeException persistenceFailure) {
+            try {
+                fileStorageService.deleteFile(storedFilePath);
+            } catch (RuntimeException cleanupFailure) {
+                persistenceFailure.addSuppressed(cleanupFailure);
+            }
+            throw persistenceFailure;
+        }
     }
 
     /**
@@ -82,31 +92,36 @@ public class BookService {
      *
      * @param fileName the original file name
      * @return "PDF" or "EPUB"
-     * @throws IllegalArgumentException if the extension is not supported
      */
     private String detectFileType(String fileName) {
-        if (fileName == null) {
-            throw new IllegalArgumentException("File name must not be null");
-        }
-
-        String lowerName = fileName.toLowerCase();
+        String lowerName = fileName.toLowerCase(Locale.ROOT);
 
         if (lowerName.endsWith(".pdf")) {
             return "PDF";
         } else if (lowerName.endsWith(".epub")) {
             return "EPUB";
         } else {
-            throw new IllegalArgumentException(
-                    "Unsupported file type. Only PDF and EPUB files are accepted. Received: " + fileName
-            );
+            throw new InvalidBookUploadException("Only PDF and EPUB files are accepted");
         }
+    }
+
+    private String normalizeFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new InvalidBookUploadException("The book must have a file name");
+        }
+
+        String normalized = fileName.replace('\\', '/');
+        normalized = normalized.substring(normalized.lastIndexOf('/') + 1).trim();
+        if (normalized.isBlank() || normalized.equals(".") || normalized.equals("..")) {
+            throw new InvalidBookUploadException("The book must have a valid file name");
+        }
+        return normalized;
     }
 
     /**
      * Derives a human-readable title from the file name by stripping the extension.
      */
     private String deriveTitle(String fileName) {
-        if (fileName == null) return "Unknown";
         int dotIndex = fileName.lastIndexOf(".");
         return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
     }

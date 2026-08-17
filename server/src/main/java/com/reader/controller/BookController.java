@@ -1,24 +1,18 @@
 package com.reader.controller;
 
-import com.reader.model.Book;
+import com.reader.api.BookResponse;
+import com.reader.exception.BookNotFoundException;
 import com.reader.service.BookService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/books")
 public class BookController {
-
-    private static final Logger logger = LoggerFactory.getLogger(BookController.class);
 
     private final BookService bookService;
 
@@ -31,29 +25,12 @@ public class BookController {
      * Accepts a multipart file, stores it, and returns saved metadata.
      */
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadBook(@RequestParam("file") MultipartFile file) {
-        logger.info("Received upload request for file: {}", file.getOriginalFilename());
-
-        if (file.isEmpty()) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("error", "File must not be empty"));
-        }
-
-        try {
-            Book savedBook = bookService.uploadBook(file);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedBook);
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid file upload attempt: {}", e.getMessage());
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        } catch (IOException e) {
-            logger.error("Failed to store file: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to store file: " + e.getMessage()));
-        }
+    public ResponseEntity<BookResponse> uploadBook(@RequestParam("file") MultipartFile file) {
+        BookResponse response = BookResponse.from(bookService.uploadBook(file));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Deprecation", "true")
+                .header("X-Reader-Legacy-Endpoint", "Local import replaces this endpoint in Phase 2")
+                .body(response);
     }
 
     /**
@@ -61,8 +38,8 @@ public class BookController {
      * Returns all uploaded books.
      */
     @GetMapping
-    public ResponseEntity<List<Book>> getAllBooks() {
-        List<Book> books = bookService.getAllBooks();
+    public ResponseEntity<List<BookResponse>> getAllBooks() {
+        List<BookResponse> books = bookService.getAllBooks().stream().map(BookResponse::from).toList();
         return ResponseEntity.ok(books);
     }
 
@@ -71,13 +48,10 @@ public class BookController {
      * Returns a single book by ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getBookById(@PathVariable String id) {
-        Optional<Book> book = bookService.getBookById(id);
-        if (book.isPresent()) {
-            return ResponseEntity.ok(book.get());
-        }
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Book not found with id: " + id));
+    public ResponseEntity<BookResponse> getBookById(@PathVariable String id) {
+        BookResponse response = bookService.getBookById(id)
+                .map(BookResponse::from)
+                .orElseThrow(BookNotFoundException::new);
+        return ResponseEntity.ok(response);
     }
 }

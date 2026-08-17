@@ -1,15 +1,15 @@
 package com.reader.storage;
 
+import com.reader.config.ReaderProperties;
+import com.reader.exception.BookStorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
@@ -20,8 +20,8 @@ public class FileStorageService {
 
     private final Path storageLocation;
 
-    public FileStorageService(@Value("${file.storage.path}") String storagePath) {
-        this.storageLocation = Paths.get(storagePath).toAbsolutePath().normalize();
+    public FileStorageService(ReaderProperties readerProperties) {
+        this.storageLocation = readerProperties.storage().path().toAbsolutePath().normalize();
         createStorageDirectoryIfNotExists();
     }
 
@@ -31,9 +31,9 @@ public class FileStorageService {
     private void createStorageDirectoryIfNotExists() {
         try {
             Files.createDirectories(this.storageLocation);
-            logger.info("Storage directory initialized at: {}", this.storageLocation);
+            logger.info("Legacy upload storage initialized");
         } catch (IOException e) {
-            throw new RuntimeException("Could not create storage directory at: " + this.storageLocation, e);
+            throw new BookStorageException("Could not initialize legacy upload storage", e);
         }
     }
 
@@ -42,31 +42,35 @@ public class FileStorageService {
      *
      * @param file the uploaded multipart file
      * @return the absolute path string where the file was stored
-     * @throws IOException if the file cannot be written
      */
-    public String saveFile(MultipartFile file) throws IOException {
-        String originalFileName = file.getOriginalFilename();
-        String extension = getFileExtension(originalFileName);
-        String storedFileName = UUID.randomUUID().toString() + extension;
+    public String saveFile(MultipartFile file, String fileType) {
+        String storedFileName = UUID.randomUUID() + "." + fileType.toLowerCase();
 
-        Path targetPath = this.storageLocation.resolve(storedFileName);
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        Path targetPath = this.storageLocation.resolve(storedFileName).normalize();
+        if (!targetPath.startsWith(this.storageLocation)) {
+            throw new BookStorageException("Invalid legacy upload storage target");
+        }
 
-        logger.info("File saved: {} -> {}", originalFileName, targetPath);
-        return targetPath.toString();
+        try {
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Stored legacy upload with generated name {}", storedFileName);
+            return targetPath.toString();
+        } catch (IOException exception) {
+            throw new BookStorageException("Could not write legacy upload", exception);
+        }
     }
 
-    /**
-     * Extracts the file extension from the original filename.
-     *
-     * @param fileName the original file name
-     * @return the extension including dot (e.g. ".pdf"), or empty string if none
-     */
-    private String getFileExtension(String fileName) {
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
+    public void deleteFile(String storedFilePath) {
+        Path targetPath = Path.of(storedFilePath).toAbsolutePath().normalize();
+        if (!targetPath.startsWith(this.storageLocation)) {
+            throw new BookStorageException("Refusing to delete a file outside legacy upload storage");
         }
-        return fileName.substring(fileName.lastIndexOf("."));
+
+        try {
+            Files.deleteIfExists(targetPath);
+        } catch (IOException exception) {
+            throw new BookStorageException("Could not remove legacy upload", exception);
+        }
     }
 
     /**
