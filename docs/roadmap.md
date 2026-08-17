@@ -53,7 +53,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 0 — Repository analysis and pivot context
 
-**Branch:** `phase/00-local-first-context`  
+**Branch:** `phase/00-local-first-context`
+
 **Purpose:** Establish an evidence-based baseline, accept the local-first direction, and make the repository a durable source of truth before product implementation.
 
 ### Required work
@@ -79,7 +80,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 1 — Stabilize the existing baseline
 
-**Branch:** `phase/01-baseline-stabilization`  
+**Branch:** `phase/01-baseline-stabilization`
+
 **Purpose:** Make the small prototype reproducible, testable, and safe enough to evolve without redesigning its legacy upload flow.
 
 **Depends on:** Phase 0 merged and present in updated `main`.
@@ -110,7 +112,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 2 — Local library and storage foundation
 
-**Branch:** `phase/02-local-library`  
+**Branch:** `phase/02-local-library`
+
 **Purpose:** Perform the fundamental product pivot: import, persist, and manage books locally without calling Spring Boot.
 
 **Depends on:** Phase 1 merged; stable frontend tests/configuration; legacy upload remains available only as a migration fallback.
@@ -141,7 +144,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 3 — Installable offline PWA and library UX
 
-**Branch:** `phase/03-offline-pwa-library`  
+**Branch:** `phase/03-offline-pwa-library`
+
 **Purpose:** Turn the local library into an installable, offline application that feels like a reader rather than an upload demo.
 
 **Depends on:** Phase 2 merged; durable local imports and repository APIs proven.
@@ -167,7 +171,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 4 — PDF and EPUB reading engines
 
-**Branch:** `phase/04-reading-engines`  
+**Branch:** `phase/04-reading-engines`
+
 **Purpose:** Deliver real local PDF/EPUB reading behind stable engine and locator contracts.
 
 **Depends on:** Phase 3 merged; offline binary access, local library routes, and PWA worker strategy available.
@@ -197,7 +202,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 5 — Reading state, bookmarks, highlights, and notes
 
-**Branch:** `phase/05-reading-tools`  
+**Branch:** `phase/05-reading-tools`
+
 **Purpose:** Add the offline reading tools that turn engines into a durable personal reader.
 
 **Depends on:** Phase 4 merged; normalized locators and selection/capability events stable.
@@ -227,7 +233,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 6 — Knowledge system and library management
 
-**Branch:** `phase/06-library-knowledge`  
+**Branch:** `phase/06-library-knowledge`
+
 **Purpose:** Complete offline organization, knowledge review, export, and useful local activity insights.
 
 **Depends on:** Phase 5 merged; book/annotation repositories and normalized source jumps available.
@@ -253,7 +260,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 7 — Capacitor and native mobile
 
-**Branch:** `phase/07-native-mobile`  
+**Branch:** `phase/07-native-mobile`
+
 **Purpose:** Package the same React reader for Android/iOS and implement native persistence/lifecycle behavior without duplicating the application.
 
 **Depends on:** Phase 6 merged; complete offline React core and stable platform interfaces.
@@ -280,7 +288,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 8 — Optional accounts, JWT, and cloud sync
 
-**Branch:** `phase/08-cloud-sync`  
+**Branch:** `phase/08-cloud-sync`
+
 **Purpose:** Add opt-in cloud identity, secure multi-device synchronization, and explicit book backup while preserving the local-only product unchanged.
 
 **Depends on:** Phase 7 merged; stable web/native local records, UUIDs, repositories, locators, and platform security capabilities.
@@ -311,7 +320,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 9 — Online AI, enrichment, and cloud administration
 
-**Branch:** `phase/09-online-services`  
+**Branch:** `phase/09-online-services`
+
 **Purpose:** Add clearly optional, bounded online enhancements and cloud-only operations.
 
 **Depends on:** Phase 8 merged; authenticated cloud security, usage scoping, configuration, and sync/operations foundation.
@@ -340,7 +350,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 10 — Security, performance, and comprehensive quality audit
 
-**Branch:** `phase/10-hardening`  
+**Branch:** `phase/10-hardening`
+
 **Purpose:** Conduct a focused end-to-end audit and close demonstrated security, performance, reliability, and coverage gaps accumulated across the complete feature set.
 
 **Depends on:** Phase 9 merged; all product surfaces exist and have phase-level tests.
@@ -370,7 +381,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 ## Phase 11 — Production readiness, CI, and final documentation
 
-**Branch:** `phase/11-production-readiness`  
+**Branch:** `phase/11-production-readiness`
+
 **Purpose:** Make the repository ready for sustained release work, establish operational delivery, and audit the final local-first promise.
 
 **Depends on:** Phase 10 merged; security/performance/test findings resolved or explicitly accepted.

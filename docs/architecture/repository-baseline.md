@@ -1,8 +1,11 @@
 # Repository baseline
 
-**Snapshot date:** 2026-08-17  
-**Baseline commit:** `ef9087e` (`chore: update gitignore`)  
-**Baseline branch:** `main`  
+**Snapshot date:** 2026-08-17
+
+**Baseline commit:** `ef9087e` (`chore: update gitignore`)
+
+**Baseline branch:** `main`
+
 **Repository:** `A-Cube-a3/reader-web-app`
 
 This document records what existed before the local-first pivot. It is an inventory, not a description of intended or assumed functionality.
