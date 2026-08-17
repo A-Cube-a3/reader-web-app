@@ -24,8 +24,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 
 | Phase | Branch | Status | Depends on |
 |---:|---|---|---|
-| 0 | `phase/00-local-first-context` | Acceptance met; merge pending | Baseline `main` at `ef9087e` |
-| 1 | `phase/01-baseline-stabilization` | Planned | Phase 0 PR merged |
+| 0 | `phase/00-local-first-context` | Complete — PR #1, merge `98bd1e1` | Baseline `main` at `ef9087e` |
+| 1 | `phase/01-baseline-stabilization` | Acceptance met; merge pending | Phase 0 PR merged |
 | 2 | `phase/02-local-library` | Planned | Phase 1 PR merged |
 | 3 | `phase/03-offline-pwa-library` | Planned | Phase 2 PR merged |
 | 4 | `phase/04-reading-engines` | Planned | Phase 3 PR merged |

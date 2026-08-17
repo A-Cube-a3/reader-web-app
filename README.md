@@ -1,134 +1,75 @@
----
+# Reader
 
-## ⚙️ Prerequisites
+Reader is being rebuilt as a local-first PDF and EPUB application. The React application will own core reading data and work without an account, Spring Boot, MongoDB, or a network connection. Spring Boot and MongoDB remain as an optional cloud companion.
 
-| Tool       | Version  |
-|------------|----------|
-| Java       | 17+      |
-| Maven      | 3.8+     |
-| Node.js    | 18+      |
-| MongoDB    | 6+       |
+Phase 1 stabilizes the inherited upload prototype. Local import and durable offline storage begin in Phase 2; the current upload screen and `POST /api/books/upload` are explicitly temporary legacy paths.
 
----
+## Repository
 
-## 🚀 Run Instructions
+```text
+client/   React 19 + Vite 7 + JavaScript
+server/   Java 17 + Spring Boot 3.5 + Maven wrapper + MongoDB
+docs/     Authoritative architecture, roadmap, setup, and development guidance
+```
 
-### 1. Start MongoDB
+Read [docs/roadmap.md](docs/roadmap.md) before roadmap work. The accepted architecture is in [docs/architecture/local-first-architecture.md](docs/architecture/local-first-architecture.md).
+
+## Supported toolchain
+
+- Java 17 exactly for the server build
+- Maven 3.9.12 through the executable wrapper in `server/`
+- Node.js 22 (the repository pins 22.23.1 in `.nvmrc`)
+- pnpm 11 (the client pins 11.15.1)
+- MongoDB for the temporary server upload path only
+
+## Quick start
+
+The frontend can be linted, tested, and built without MongoDB. Running the temporary upload flow requires MongoDB and the backend.
 
 ```bash
-# macOS (Homebrew)
-brew services start mongodb-community
-
-# Linux (systemd)
-sudo systemctl start mongod
-
-# Windows
-net start MongoDB
+cd client
+pnpm install --frozen-lockfile
+pnpm check
+pnpm dev
 ```
 
-Confirm it's running:
-```bash
-mongosh
-# should open a Mongo shell connected to localhost:27017
-```
-
----
-
-### 2. Start the Backend
+In another terminal:
 
 ```bash
-cd reader-app/backend
-
-mvn spring-boot:run
+cd server
+./mvnw clean verify
+./mvnw spring-boot:run
 ```
 
-You should see:
-```
-Started ReaderAppApplication on port 8080
-```
+Local development defaults use MongoDB at `mongodb://localhost:27017/readerapp`, server port `8080`, client port `5173`, and server storage at `server/storage/` when the backend is launched from `server/`. Override them through the environment; the application does not load `.env` files itself.
 
-A `./storage/` folder will be created automatically at `reader-app/backend/storage/`.
-
----
-
-### 3. Start the Frontend
+For example:
 
 ```bash
-cd reader-app/frontend
-
-npm install
-
-npm run dev
+cp .env.example .env
+set -a
+. ./.env
+set +a
 ```
 
-Frontend available at: **http://localhost:5173**
+Do not commit the resulting `.env`. See [docs/setup/configuration.md](docs/setup/configuration.md) for the full variable catalog, profiles, and production rules.
 
----
+## Current API
 
-## 🧪 Testing the Upload
+| Method | Endpoint | Current purpose |
+|---|---|---|
+| `GET` | `/api/health` | Simple prototype health response |
+| `POST` | `/api/books/upload` | Deprecated server-side PDF/EPUB upload |
+| `GET` | `/api/books` | List legacy MongoDB book metadata |
+| `GET` | `/api/books/{id}` | Get legacy MongoDB book metadata |
 
-### Option A — Browser UI
+Public book responses omit internal storage paths. API failures use a stable error shape and do not return raw storage or database exception details. The upload response includes deprecation headers because Phase 2 replaces this UI path with local import.
 
-1. Open http://localhost:5173
-2. Click the file input and choose a `.pdf` or `.epub` file
-3. Click **Upload Book**
-4. The response JSON will appear below the button
-
-### Option B — curl
+## Validation
 
 ```bash
-curl -X POST http://localhost:8080/api/books/upload \
-  -F "file=@/path/to/your/book.pdf"
+cd client && pnpm check
+cd ../server && ./mvnw clean verify
 ```
 
-Expected response (201 Created):
-```json
-{
-  "id": "64ab1234...",
-  "title": "my-book",
-  "type": "PDF",
-  "filePath": "/absolute/path/storage/uuid.pdf",
-  "originalFileName": "my-book.pdf",
-  "fileSize": 204800,
-  "uploadedAt": "2024-01-15T10:30:00"
-}
-```
-
-### Option C — GET all books
-
-```bash
-curl http://localhost:8080/api/books
-```
-
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint                   | Description            |
-|--------|----------------------------|------------------------|
-| POST   | `/api/books/upload`        | Upload a PDF or EPUB   |
-| GET    | `/api/books`               | List all books         |
-| GET    | `/api/books/{id}`          | Get book by ID         |
-
----
-
-## 🗃️ MongoDB
-
-- **Database**: `readerapp`
-- **Collection**: `books`
-
-View saved books:
-```bash
-mongosh
-use readerapp
-db.books.find().pretty()
-```
-
----
-
-## 📝 Notes
-
-- Uploaded files are stored in `backend/storage/` with a UUID filename
-- Only `.pdf` and `.epub` files are accepted
-- File size limit: 100MB (configurable in `application.properties`)
-- No authentication in Phase 1
+The current test layout and exact reproducible commands are documented in [docs/development/testing.md](docs/development/testing.md).

@@ -1,16 +1,26 @@
-# React + Vite
+# Reader web client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the shared React + Vite JavaScript application. It is the future local-first reader core for the PWA and Capacitor targets.
 
-Currently, two official plugins are available:
+Phase 1 still displays the inherited server upload flow, now labeled as legacy. Phase 2 replaces its primary action with browser-local import and storage; do not build new core reader features against `legacyBooksApi.js`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Commands
 
-## React Compiler
+Use Node 22.23.1 and pnpm 11.15.1 from the repository pins.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm lint
+pnpm test
+pnpm build
+pnpm check
+```
 
-## Expanding the ESLint configuration
+`pnpm check` runs lint, the Vitest suite, and a production Vite build.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Configuration
+
+`VITE_API_BASE_URL` defaults to `/api`, which uses the Vite development proxy and remains suitable for a same-origin production deployment. `VITE_BACKEND_PROXY_TARGET` changes the development proxy target and defaults to `http://localhost:8080`.
+
+Every `VITE_*` value is public browser configuration. The build rejects secret-like `VITE_*` names; never place credentials, tokens, database URLs, signing material, or provider keys in client configuration. See [the configuration catalog](../docs/setup/configuration.md).
