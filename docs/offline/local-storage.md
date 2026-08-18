@@ -94,4 +94,4 @@ Use a secure-context browser with OPFS support and keep Spring Boot and MongoDB 
 4. In browser developer tools, confirm `reader-local-library` records exist in IndexedDB and copied `.bin` objects exist under the origin-private filesystem.
 5. Delete a book and confirm its record and managed binary are removed.
 6. Try a renamed text file, malformed EPUB, and a file beyond available quota; confirm no phantom record appears.
-7. Stop/restart the frontend at the same origin and confirm the library remains. Full offline application-shell reopening is Phase 3 work and is not claimed here.
+7. Stop/restart the frontend at the same origin and confirm the library remains. Then follow the [Phase 3 offline-reopen check](pwa.md) to verify the cached production shell with browser networking explicitly disabled.

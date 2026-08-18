@@ -6,6 +6,7 @@ export class LocalLibraryService {
   constructor({
     booksRepository,
     libraryRepository,
+    progressRepository = null,
     binaryStorage,
     metadataService,
     idFactory = () => globalThis.crypto.randomUUID(),
@@ -13,6 +14,7 @@ export class LocalLibraryService {
   }) {
     this.booksRepository = booksRepository
     this.libraryRepository = libraryRepository
+    this.progressRepository = progressRepository
     this.binaryStorage = binaryStorage
     this.metadataService = metadataService
     this.idFactory = idFactory
@@ -24,8 +26,13 @@ export class LocalLibraryService {
     return this.listBooks()
   }
 
-  listBooks() {
-    return this.booksRepository.list()
+  async listBooks() {
+    const books = await this.booksRepository.list()
+    if (!this.progressRepository) return books
+    return Promise.all(books.map(async (book) => {
+      const progress = await this.progressRepository.get(book.id)
+      return progress ? { ...book, progress } : book
+    }))
   }
 
   async getBook(bookId) {

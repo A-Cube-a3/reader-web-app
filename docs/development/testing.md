@@ -24,7 +24,7 @@ pnpm test
 pnpm build
 ```
 
-Vitest uses jsdom, Testing Library, and `fake-indexeddb`. Phase 2 covers runtime configuration, IndexedDB fresh/upgrade migrations, book/progress/settings repositories, atomic deletion intent, OPFS read/write/delete/quota/corruption outcomes, PDF/EPUB signature and metadata extraction, malicious/malformed EPUB bounds, import rollback, cleanup retry, and local library UI flows. The test environment uses injected in-memory OPFS adapters; browser validation remains a required manual check.
+Vitest uses jsdom, Testing Library, and `fake-indexeddb`. Phase 3 adds manifest/Workbox configuration, install/update/offline lifecycle, local metadata search/filter, Continue Reading/Recent Books derivation, and scoped connectivity/storage UI coverage to the Phase 2 storage/import/repository suite. The test environment uses injected in-memory OPFS and PWA adapters; a production-service-worker browser check remains required.
 
 ## Backend
 
@@ -41,6 +41,6 @@ The JUnit 5, AssertJ, Mockito, and MockMvc suite does not need MongoDB. Phase 1 
 
 ## Manual smoke checks
 
-For the primary Phase 2 flow, keep Spring Boot and MongoDB stopped, start only the frontend, and follow the checklist in [local storage behavior](../offline/local-storage.md). Confirm PDF/EPUB import, reload persistence, metadata edit persistence, IndexedDB/OPFS contents, deletion, invalid-file handling, and an honest persistence status in a secure-context browser.
+For the primary flow, keep Spring Boot and MongoDB stopped, start only the production frontend, and follow the [PWA offline-reopen checklist](../offline/pwa.md) plus [local storage checks](../offline/local-storage.md). Confirm installability, active service-worker control, explicit offline navigation/reload, local search/filter, PDF/EPUB import persistence, IndexedDB/OPFS contents, deletion, invalid-file handling, and an honest persistence status.
 
 The deprecated backend endpoint can be regression-checked separately with MongoDB available by sending multipart field `file` to `POST /api/books/upload`. Confirm the response omits `filePath` and includes `Deprecation: true`. The React UI deliberately has no control for this endpoint.

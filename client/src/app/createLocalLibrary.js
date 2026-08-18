@@ -10,18 +10,21 @@ import { openLocalDatabase } from '../storage/database/schema.js'
 export function createLocalLibrary({ database = openLocalDatabase(), binaryStorage } = {}) {
   const booksRepository = new IndexedDbBooksRepository(database)
   const libraryRepository = new IndexedDbLibraryRepository(database)
+  const progressRepository = new IndexedDbProgressRepository(database)
+  const settingsRepository = new IndexedDbSettingsRepository(database)
 
   return {
     library: new LocalLibraryService({
       booksRepository,
       libraryRepository,
+      progressRepository,
       binaryStorage: binaryStorage || new OpfsBookBinaryStorage(),
       metadataService: new BookMetadataService(),
     }),
     repositories: {
       books: booksRepository,
-      progress: new IndexedDbProgressRepository(database),
-      settings: new IndexedDbSettingsRepository(database),
+      progress: progressRepository,
+      settings: settingsRepository,
     },
   }
 }

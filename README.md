@@ -2,7 +2,7 @@
 
 Reader is being rebuilt as a local-first PDF and EPUB application. The React application will own core reading data and work without an account, Spring Boot, MongoDB, or a network connection. Spring Boot and MongoDB remain as an optional cloud companion.
 
-Phase 2 makes the browser-local library the primary product path. The frontend imports PDF and EPUB files into private origin storage, keeps structured records in IndexedDB, and lists/edits/deletes them without contacting Spring Boot. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
+Phase 3 makes the browser-local library an installable offline PWA. The frontend imports PDF and EPUB files into private origin storage, keeps structured records in IndexedDB, precaches its complete application shell, and provides local search/filter/dashboard CRUD without contacting Spring Boot. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
 
 ## Repository
 
@@ -54,7 +54,7 @@ set +a
 
 Do not commit the resulting `.env`. See [docs/setup/configuration.md](docs/setup/configuration.md) for the full variable catalog, profiles, and production rules.
 
-The local data model, browser durability behavior, quota handling, and deletion recovery policy are documented in [docs/offline/local-storage.md](docs/offline/local-storage.md). Keep original book files backed up: clearing site data removes this device's IndexedDB and OPFS data, and cloud backup is not implemented yet.
+The [PWA/offline guide](docs/offline/pwa.md) documents installation, cache/update semantics, offline reopening, and troubleshooting. The [local storage guide](docs/offline/local-storage.md) covers the data model, durability, quota, and deletion recovery. Keep original book files backed up: clearing site data removes this device's caches, IndexedDB, and OPFS data, and cloud backup is not implemented yet.
 
 ## Current API
 
