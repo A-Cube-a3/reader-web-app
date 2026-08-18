@@ -4,7 +4,7 @@
 
 The reader is an offline-capable application whose React core owns the complete reading experience. Local data is authoritative for responsiveness and availability. Spring Boot and MongoDB become an optional cloud companion; they are never on the critical path for opening a locally imported book.
 
-This is the target architecture. Delivery is staged by `docs/roadmap.md`; the Phase 2 IndexedDB repositories, local library service, OPFS adapter, and bounded metadata services are implemented, while reader, annotation, native, sync, and online-service components remain phased work.
+This is the target architecture. Delivery is staged by `docs/roadmap.md`; the IndexedDB repositories, local library service, OPFS adapter, bounded metadata services, and Phase 3 installable/offline PWA shell are implemented, while reader, annotation, native, sync, and online-service components remain phased work.
 
 ## Product invariants
 
@@ -250,6 +250,8 @@ load cached application shell
 ```
 
 No request to Spring Boot gates library rendering. Offline is a normal connectivity state, not a boot error.
+
+On web, Workbox owns only the versioned application-shell cache. IndexedDB and OPFS remain outside the service-worker cache lifecycle, so activating a shell update does not replace local books. The prompt-based update policy lets the user choose when to reload rather than discarding active form state. Same-origin application navigations fall back to the cached shell; `/api/**` never falls back to HTML.
 
 ### Read and persist progress
 
