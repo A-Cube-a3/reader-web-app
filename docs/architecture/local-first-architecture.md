@@ -4,7 +4,7 @@
 
 The reader is an offline-capable application whose React core owns the complete reading experience. Local data is authoritative for responsiveness and availability. Spring Boot and MongoDB become an optional cloud companion; they are never on the critical path for opening a locally imported book.
 
-This is the target architecture. Delivery is staged by `docs/roadmap.md`; components described here do not necessarily exist yet.
+This is the target architecture. Delivery is staged by `docs/roadmap.md`; the Phase 2 IndexedDB repositories, local library service, OPFS adapter, and bounded metadata services are implemented, while reader, annotation, native, sync, and online-service components remain phased work.
 
 ## Product invariants
 
@@ -157,7 +157,7 @@ Only the format-specific member matching `format` is present. Required fields va
 
 ### IndexedDB
 
-IndexedDB is the initial structured database on PWA and Capacitor targets. It is accessed through repositories, never directly from components. The first implementation will create a named, versioned database with transactional migrations and stores for at least books, progress, and settings. Later phase migrations add bookmarks, highlights, notes, collections, statistics, search indexes, sync queue items, and sync metadata.
+IndexedDB is the initial structured database on PWA and Capacitor targets. It is accessed through repositories, never directly from components. Phase 2 implements database `reader-local-library` at version 2 with `books`, `progress`, `settings`, and retryable `binary-cleanup` stores. Later phase migrations add bookmarks, highlights, notes, collections, statistics, search indexes, sync queue items, and sync metadata.
 
 Each migration:
 
@@ -174,10 +174,10 @@ Repositories expose task-level operations rather than raw object stores. Multi-r
 
 ### Binary storage contract
 
-`BookBinaryStorage` is a platform-neutral interface resembling:
+`BookBinaryStorage` is a platform-neutral interface currently implemented by the web adapter with these operations:
 
 ```text
-import(bookId, File/Blob/stream) -> opaque binaryReference
+write(File/Blob)                 -> opaque binaryReference
 open(binaryReference)           -> readable Blob/stream/engine source
 delete(binaryReference)
 exists(binaryReference)
@@ -191,7 +191,7 @@ Error results distinguish unsupported capability, permission/persistence denial,
 
 The preferred adapter copies PDF/EPUB bytes into application-managed OPFS. A transient input `File` and object URL are import/read handles only, never permanent storage. The adapter requests persistent storage where supported, checks `navigator.storage.estimate()` when useful, reports whether durability was granted, revokes temporary object URLs, and provides actionable quota/persistence warnings.
 
-If OPFS is unavailable, any fallback must still be durable, adapter-backed, documented, and tested. Silently retaining only an object URL is prohibited.
+If OPFS is unavailable, Phase 2 returns a typed unsupported result; it does not pretend a transient handle is durable. Any future fallback must still be durable, adapter-backed, documented, and tested. Silently retaining only an object URL is prohibited.
 
 #### Capacitor adapter
 
@@ -201,16 +201,15 @@ The native adapter copies imported data into app-private storage through Capacit
 
 Import spans untrusted parsing, binary storage, and IndexedDB, so it follows a recoverable sequence:
 
-1. Validate supported size and format using signatures/container structure where practical.
-2. Generate a book UUID.
-3. Copy the binary under that UUID into `BookBinaryStorage`.
-4. Extract bounded metadata through format-specific services/workers.
-5. Commit the book record with its opaque binary reference.
-6. On a structured-record failure, delete the copied binary or record recoverable cleanup work.
+1. Validate supported size and format using signatures/container structure.
+2. Extract bounded local metadata through format-specific services.
+3. Copy the book and optional cover into `BookBinaryStorage` under opaque storage IDs.
+4. Generate the application book UUID and commit the record with opaque binary references.
+5. On a structured-record failure, delete copied binaries or record recoverable cleanup work.
 
 Duplicate detection may be added with content hashes, but a hash cannot replace the application UUID. Import never calls Spring Boot.
 
-Deleting a book removes the book and its binary and, by the Phase 2 policy, cascades its progress and other dependent local records once those stores exist. The UI must state this impact and request confirmation. If binary deletion fails after structured cleanup, a recoverable orphan-cleanup record is retained; errors are not hidden.
+Deleting a book atomically removes its book/progress records and records binary cleanup intent in IndexedDB. OPFS deletion then clears that intent; startup retries failures after an interruption. Future dependent stores extend this transaction in their owning phase. If binary deletion fails after structured cleanup, the recoverable cleanup record is retained and the UI reports cleanup is pending.
 
 ## Reader engine architecture
 
