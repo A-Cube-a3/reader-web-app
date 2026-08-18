@@ -66,6 +66,18 @@ describe('LocalLibraryService', () => {
     expect(binaryStorage.files.size).toBe(0)
   })
 
+  it('hydrates locally saved progress for the Continue Reading view', async () => {
+    const imported = await service.importBook(file('%PDF-1.7 local', 'manual.pdf'))
+    await progress.set(imported.id, { progression: 0.4, locator: { page: 5 } })
+
+    expect(await service.initialize()).toEqual([
+      expect.objectContaining({
+        id: imported.id,
+        progress: expect.objectContaining({ progression: 0.4, locator: { page: 5 } }),
+      }),
+    ])
+  })
+
   it('deletes structured data immediately and keeps failed binary cleanup retryable', async () => {
     const imported = await service.importBook(file('%PDF-1.7 local', 'manual.pdf'))
     await progress.set(imported.id, { progression: 0.5 })
@@ -89,6 +101,7 @@ describe('LocalLibraryService', () => {
     return new LocalLibraryService({
       booksRepository: books,
       libraryRepository,
+      progressRepository: progress,
       binaryStorage,
       metadataService: {
         extract: vi.fn().mockResolvedValue({
