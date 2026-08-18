@@ -45,4 +45,4 @@ Inject production secrets through the deployment environment or a secret manager
 
 Unit and controller tests use mocks and temporary directories, so they do not require MongoDB or persistent book storage. Configuration binding tests supply explicit properties in an isolated application context.
 
-Phase 2 moves normal import into client-local storage. The server variables remain relevant only to the optional companion and the temporary legacy upload until that migration is complete.
+Phase 2 moved normal import into client-local storage. The server variables remain relevant only to the optional companion and the temporary legacy upload endpoint; the React library does not require or call that endpoint.

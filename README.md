@@ -2,7 +2,7 @@
 
 Reader is being rebuilt as a local-first PDF and EPUB application. The React application will own core reading data and work without an account, Spring Boot, MongoDB, or a network connection. Spring Boot and MongoDB remain as an optional cloud companion.
 
-Phase 1 stabilizes the inherited upload prototype. Local import and durable offline storage begin in Phase 2; the current upload screen and `POST /api/books/upload` are explicitly temporary legacy paths.
+Phase 2 makes the browser-local library the primary product path. The frontend imports PDF and EPUB files into private origin storage, keeps structured records in IndexedDB, and lists/edits/deletes them without contacting Spring Boot. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
 
 ## Repository
 
@@ -20,11 +20,11 @@ Read [docs/roadmap.md](docs/roadmap.md) before roadmap work. The accepted archit
 - Maven 3.9.12 through the executable wrapper in `server/`
 - Node.js 22 (the repository pins 22.23.1 in `.nvmrc`)
 - pnpm 11 (the client pins 11.15.1)
-- MongoDB for the temporary server upload path only
+- MongoDB only when exercising the optional, deprecated server upload path
 
 ## Quick start
 
-The frontend can be linted, tested, and built without MongoDB. Running the temporary upload flow requires MongoDB and the backend.
+The frontend library can be developed and used without MongoDB or the backend. It currently requires a browser with OPFS support; unsupported browsers receive an explicit storage error instead of an unsafe transient fallback.
 
 ```bash
 cd client
@@ -54,12 +54,14 @@ set +a
 
 Do not commit the resulting `.env`. See [docs/setup/configuration.md](docs/setup/configuration.md) for the full variable catalog, profiles, and production rules.
 
+The local data model, browser durability behavior, quota handling, and deletion recovery policy are documented in [docs/offline/local-storage.md](docs/offline/local-storage.md). Keep original book files backed up: clearing site data removes this device's IndexedDB and OPFS data, and cloud backup is not implemented yet.
+
 ## Current API
 
 | Method | Endpoint | Current purpose |
 |---|---|---|
 | `GET` | `/api/health` | Simple prototype health response |
-| `POST` | `/api/books/upload` | Deprecated server-side PDF/EPUB upload |
+| `POST` | `/api/books/upload` | Deprecated server-side PDF/EPUB upload; not called by the UI |
 | `GET` | `/api/books` | List legacy MongoDB book metadata |
 | `GET` | `/api/books/{id}` | Get legacy MongoDB book metadata |
 

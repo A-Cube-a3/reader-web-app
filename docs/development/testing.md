@@ -24,7 +24,7 @@ pnpm test
 pnpm build
 ```
 
-Vitest uses jsdom and Testing Library. Phase 1 covers runtime configuration and secret-name rejection, the legacy API success/error/network contracts, file-type UI validation, successful UI submission, and useful connectivity feedback.
+Vitest uses jsdom, Testing Library, and `fake-indexeddb`. Phase 2 covers runtime configuration, IndexedDB fresh/upgrade migrations, book/progress/settings repositories, atomic deletion intent, OPFS read/write/delete/quota/corruption outcomes, PDF/EPUB signature and metadata extraction, malicious/malformed EPUB bounds, import rollback, cleanup retry, and local library UI flows. The test environment uses injected in-memory OPFS adapters; browser validation remains a required manual check.
 
 ## Backend
 
@@ -39,8 +39,8 @@ The JUnit 5, AssertJ, Mockito, and MockMvc suite does not need MongoDB. Phase 1 
 
 `verify` also packages the server jar. The build requires Java 17; `.java-version` records that requirement for compatible version managers.
 
-## Manual smoke check
+## Manual smoke checks
 
-With MongoDB available, start the backend and frontend, select a small PDF or EPUB, and use **Upload to Legacy Backend**. Confirm a created response appears without `filePath`, and browser network tools show the `Deprecation: true` response header.
+For the primary Phase 2 flow, keep Spring Boot and MongoDB stopped, start only the frontend, and follow the checklist in [local storage behavior](../offline/local-storage.md). Confirm PDF/EPUB import, reload persistence, metadata edit persistence, IndexedDB/OPFS contents, deletion, invalid-file handling, and an honest persistence status in a secure-context browser.
 
-This is only a regression check for the inherited flow. It is not the local-first acceptance test; local import begins in Phase 2.
+The deprecated backend endpoint can be regression-checked separately with MongoDB available by sending multipart field `file` to `POST /api/books/upload`. Confirm the response omits `filePath` and includes `Deprecation: true`. The React UI deliberately has no control for this endpoint.

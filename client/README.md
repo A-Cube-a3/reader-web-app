@@ -1,8 +1,10 @@
 # Reader web client
 
-This directory contains the shared React + Vite JavaScript application. It is the future local-first reader core for the PWA and Capacitor targets.
+This directory contains the shared React + Vite JavaScript application and its local-first library core for the PWA and future Capacitor targets.
 
-Phase 1 still displays the inherited server upload flow, now labeled as legacy. Phase 2 replaces its primary action with browser-local import and storage; do not build new core reader features against `legacyBooksApi.js`.
+The primary UI imports PDF/EPUB files locally. React calls `LocalLibraryService`; repositories own IndexedDB and `OpfsBookBinaryStorage` owns browser file handles. Core library code does not import the legacy API client or wait for Spring Boot.
+
+The current web adapter requires OPFS and checks that capability at runtime. Use a secure context (`localhost` is acceptable for development). The app asks for durable storage through the browser and reports quota/durability state, but the browser may deny persistence. See [local storage behavior](../docs/offline/local-storage.md).
 
 ## Commands
 
