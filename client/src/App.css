@@ -1,118 +1,95 @@
-/* Page Layout */
-.page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: Georgia, serif;
-  padding: 20px;
+:root {
+  color: #2b2723;
+  background: #f2eee6;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
 }
 
-/* Card */
-.card {
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 40px;
-  max-width: 600px;
-  width: 100%;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.appShell { min-height: 100vh; padding: 32px; }
+.appHeader, .libraryLayout { width: min(1240px, 100%); margin: 0 auto; }
+.appHeader { display: flex; justify-content: space-between; gap: 32px; align-items: end; margin-bottom: 28px; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 8px; font-family: Georgia, serif; font-size: clamp(2rem, 5vw, 3.4rem); color: #1f382f; }
+h2 { margin-bottom: 4px; font-family: Georgia, serif; color: #1f382f; }
+.eyebrow { margin-bottom: 5px; color: #a04d2c; font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.headerCopy { max-width: 620px; margin-bottom: 0; color: #686059; }
+
+.storageStatus { display: flex; min-width: 230px; flex-direction: column; gap: 4px; border: 1px solid #d5cec3; border-radius: 14px; background: #fffdf8; padding: 13px 15px; font-size: .82rem; }
+.storageStatus span { color: #6e675f; }
+.storageStatus button { align-self: start; border: 0; background: none; padding: 4px 0 0; color: #8d3f24; font-weight: 700; text-decoration: underline; }
+.storageDurable { border-color: #9fc4ad; background: #eff8f1; }
+.storageWarning { border-color: #e4bd90; background: #fff7e8; }
+
+.libraryLayout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr); gap: 22px; align-items: start; }
+.libraryPanel, .detailPanel { border: 1px solid #ded7cd; border-radius: 20px; background: rgba(255, 253, 248, .94); box-shadow: 0 18px 55px rgba(59, 43, 30, .08); }
+.libraryPanel { padding: 24px; }
+.detailPanel { position: sticky; top: 20px; min-height: 450px; padding: 24px; }
+
+.importBar { display: flex; gap: 20px; justify-content: space-between; align-items: end; border-radius: 14px; background: #e8efe8; padding: 18px; }
+.importBar > div { min-width: 0; flex: 1; }
+.importBar label { display: block; margin-bottom: 7px; color: #1f382f; font-weight: 800; }
+.importBar input { display: block; width: 100%; border: 1px dashed #789183; border-radius: 9px; background: #fff; padding: 9px; }
+.importBar small { display: block; margin-top: 7px; color: #5d6c62; }
+.primaryButton, .dangerButton { border-radius: 9px; padding: 10px 15px; font-weight: 800; }
+.primaryButton { border: 1px solid #1f382f; background: #1f382f; color: white; }
+.dangerButton { border: 1px solid #c56a55; background: white; color: #9a3726; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+
+.message { margin: 16px 0 0; border-radius: 9px; padding: 11px 13px; }
+.errorMessage { border: 1px solid #e4a798; background: #fff0ec; color: #8c291c; }
+.successMessage { border: 1px solid #9fc4ad; background: #eff8f1; color: #285c3c; }
+.sectionHeading { display: flex; justify-content: space-between; align-items: end; margin: 30px 0 14px; }
+.sectionHeading h2 { margin: 0; }
+.sectionHeading > span { color: #756e66; font-size: .9rem; }
+.emptyState { border: 1px dashed #cfc5b8; border-radius: 14px; padding: 38px; text-align: center; color: #756e66; }
+.emptyState h3 { margin-bottom: 7px; color: #3a352f; }
+.emptyState p { margin-bottom: 0; }
+
+.bookGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 13px; margin: 0; padding: 0; list-style: none; }
+.bookCard { display: flex; width: 100%; min-height: 170px; flex-direction: column; align-items: start; border: 1px solid #ded7cd; border-radius: 13px; background: white; padding: 17px; text-align: left; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.bookCard:hover, .bookCard:focus-visible { transform: translateY(-2px); border-color: #789183; box-shadow: 0 8px 22px rgba(59, 43, 30, .11); }
+.bookCardSelected { border-color: #a04d2c; box-shadow: inset 0 0 0 1px #a04d2c; }
+.bookCard strong { margin: 18px 0 5px; font-family: Georgia, serif; font-size: 1.08rem; color: #1f382f; }
+.bookCard > span:not(.formatBadge) { color: #655e57; }
+.bookCard small { margin-top: auto; color: #837a71; }
+.formatBadge { display: inline-flex; width: fit-content; border-radius: 99px; background: #eee5d7; padding: 4px 8px; color: #7f432d; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+
+.detailPlaceholder { display: grid; min-height: 400px; place-content: center; text-align: center; color: #7b746c; }
+.detailPlaceholder > span { font-size: 2rem; }
+.detailPlaceholder h2 { margin: 10px 0 5px; }
+.detailPlaceholder p { max-width: 260px; margin-bottom: 0; }
+.detailTitle { display: flex; gap: 12px; align-items: start; margin-bottom: 22px; }
+.detailTitle h2 { overflow-wrap: anywhere; }
+.detailTitle p { margin: 0; color: #7b746c; overflow-wrap: anywhere; font-size: .82rem; }
+.detailsForm > label, .fieldRow label { display: grid; gap: 6px; margin-bottom: 13px; color: #554e47; font-size: .8rem; font-weight: 800; }
+.detailsForm input, .detailsForm textarea { width: 100%; border: 1px solid #cfc7bd; border-radius: 8px; background: white; padding: 9px 10px; color: #2b2723; font-weight: 400; }
+.detailsForm textarea { resize: vertical; }
+.fieldRow { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.bookFacts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 18px 0; }
+.bookFacts div { border-radius: 8px; background: #f4f0e8; padding: 9px; }
+.bookFacts dt { color: #7d756c; font-size: .68rem; text-transform: uppercase; }
+.bookFacts dd { margin: 3px 0 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 800; }
+.detailActions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 850px) {
+  .appShell { padding: 20px; }
+  .appHeader { align-items: stretch; flex-direction: column; }
+  .libraryLayout { grid-template-columns: 1fr; }
+  .detailPanel { position: static; min-height: auto; }
 }
 
-/* Typography */
-.title {
-  margin: 0 0 4px 0;
-  font-size: 28px;
-  color: #1a1a2e;
+@media (max-width: 560px) {
+  .appShell { padding: 12px; }
+  .libraryPanel, .detailPanel { padding: 16px; border-radius: 15px; }
+  .importBar { align-items: stretch; flex-direction: column; }
+  .fieldRow, .bookFacts { grid-template-columns: 1fr; }
 }
 
-.subtitle {
-  margin: 0 0 32px 0;
-  color: #888;
-  font-size: 14px;
-}
-
-/* Sections */
-.section {
-  margin-bottom: 24px;
-}
-
-.label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-  color: #333;
-}
-
-/* File Input */
-.fileInput {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  border: 1px dashed #aaa;
-  border-radius: 6px;
-  background: #fafafa;
-  cursor: pointer;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.fileInfo {
-  margin-top: 8px;
-  color: #555;
-  font-size: 13px;
-}
-
-/* Button */
-.button {
-  width: 100%;
-  padding: 12px;
-  background: #1a1a2e;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  font-family: Georgia, serif;
-}
-
-.buttonDisabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-/* Messages */
-.errorBox {
-  margin-top: 20px;
-  padding: 14px;
-  background: #fff0f0;
-  border: 1px solid #ffcccc;
-  border-radius: 6px;
-  color: #cc0000;
-  font-size: 14px;
-}
-
-.successBox {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f0fff4;
-  border: 1px solid #b2dfdb;
-  border-radius: 6px;
-}
-
-.successTitle {
-  margin: 0 0 12px 0;
-  color: #2e7d32;
-  font-size: 16px;
-}
-
-.pre {
-  margin: 0;
-  font-size: 13px;
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 4px;
-  overflow: auto;
-  color: #333;
-  font-family: monospace;
+@media (prefers-reduced-motion: reduce) {
+  .bookCard { transition: none; }
 }
