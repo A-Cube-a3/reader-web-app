@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Reader app icon</title>
+  <rect width="512" height="512" rx="112" fill="#1f382f"/>
+  <path d="M104 137c0-18 15-33 33-33h95c38 0 69 14 88 39v257c-18-20-45-31-80-31H137c-18 0-33-15-33-33V137Z" fill="#fff9ed"/>
+  <path d="M408 137c0-18-15-33-33-33h-95c-38 0-69 14-88 39v257c18-20 45-31 80-31h103c18 0 33-15 33-33V137Z" fill="#f4ead8"/>
+  <path d="M256 145v253" fill="none" stroke="#c7b99f" stroke-linecap="round" stroke-width="12"/>
+  <path d="M309 104h62v145l-31-23-31 23V104Z" fill="#b95836"/>
+  <path d="M141 178h75M141 221h75M141 264h58" fill="none" stroke="#698175" stroke-linecap="round" stroke-width="13"/>
+</svg>
