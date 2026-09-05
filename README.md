@@ -2,7 +2,7 @@
 
 Reader is being rebuilt as a local-first PDF and EPUB application. The React application will own core reading data and work without an account, Spring Boot, MongoDB, or a network connection. Spring Boot and MongoDB remain as an optional cloud companion.
 
-Phase 3 makes the browser-local library an installable offline PWA. The frontend imports PDF and EPUB files into private origin storage, keeps structured records in IndexedDB, precaches its complete application shell, and provides local search/filter/dashboard CRUD without contacting Spring Boot. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
+Phase 4 adds real local PDF and EPUB reading to the installable offline PWA. PDF.js and Foliate adapters open OPFS-managed files behind stable reader/locator contracts, with navigation, TOC, search, selection, responsive controls, and no Spring Boot dependency. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
 
 ## Repository
 
@@ -55,6 +55,8 @@ set +a
 Do not commit the resulting `.env`. See [docs/setup/configuration.md](docs/setup/configuration.md) for the full variable catalog, profiles, and production rules.
 
 The [PWA/offline guide](docs/offline/pwa.md) documents installation, cache/update semantics, offline reopening, and troubleshooting. The [local storage guide](docs/offline/local-storage.md) covers the data model, durability, quota, and deletion recovery. Keep original book files backed up: clearing site data removes this device's caches, IndexedDB, and OPFS data, and cloud backup is not implemented yet.
+
+The [reader engine architecture](docs/architecture/reader-engines.md) documents PDF/EPUB capabilities, normalized locators, security controls, manual checks, and known limits. [ADR-002](docs/architecture/adr-002-epub-renderer.md) records the EPUB renderer spike and decision.
 
 ## Current API
 
