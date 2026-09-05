@@ -4,7 +4,7 @@
 
 The reader is an offline-capable application whose React core owns the complete reading experience. Local data is authoritative for responsiveness and availability. Spring Boot and MongoDB become an optional cloud companion; they are never on the critical path for opening a locally imported book.
 
-This is the target architecture. Delivery is staged by `docs/roadmap.md`; the IndexedDB repositories, local library service, OPFS adapter, bounded metadata services, and Phase 3 installable/offline PWA shell are implemented, while reader, annotation, native, sync, and online-service components remain phased work.
+This is the target architecture. Delivery is staged by `docs/roadmap.md`; the local persistence/library/PWA foundation and Phase 4 PDF/EPUB reader engines are implemented. Durable reading tools, native, sync, and online-service components remain phased work.
 
 ## Product invariants
 
@@ -229,11 +229,11 @@ subscribe(location, selection, loading, error)
 
 ### PDF
 
-`PdfReaderEngine` uses PDF.js unless the Phase 4 spike identifies a concrete blocker. It owns PDF.js worker configuration, lazy page rendering, text layers, selection mapping, search, zoom/fit/rotation, and conversion between PDF pages/geometry and normalized locators. The full document is not stored in React state and all pages are not eagerly rendered.
+`PdfReaderEngine` uses PDF.js. It owns the bundled worker, current-page canvas/text rendering, selection mapping, page-by-page search, zoom/fit/rotation, and conversion between PDF pages/geometry and normalized locators. The full document is not stored in React state and all pages are not eagerly rendered. See [reader engines](reader-engines.md).
 
 ### EPUB
 
-Phase 4 begins with a documented technical spike comparing viable JavaScript engines for local Blob/File input, EPUB 2/3, CFI/locations, layouts, TOC, search, selection/annotations, theming, React/Vite, mobile WebView, maintenance, license, and security. The chosen engine is contained by `EpubReaderEngine`.
+The [EPUB renderer decision](adr-002-epub-renderer.md) selects Foliate JS after comparing local input, EPUB versions, CFI, layouts, TOC, search, selection/annotations, theming, integration, mobile WebView, maintenance, licensing, and security. Foliate remains contained by `EpubReaderEngine`.
 
 EPUB resources are untrusted. Active content is isolated in a restrictive sandbox; publication JavaScript is not allowed to execute. Navigation, external resource loading, unsafe URLs, and HTML/CSS injection require explicit controls. Engine limitations are exposed as capability results rather than leaking library-specific state into UI code.
 

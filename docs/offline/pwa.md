@@ -55,7 +55,7 @@ The first successful worker installation produces a dismissible **Ready offline*
 
 ## Offline and connectivity UX
 
-Offline is normal. When the browser reports no connection, the header displays **Offline · local library ready** rather than a global error. Import, metadata search, format filters, details, edits, and deletion continue through local services. Optional cloud features are not present yet; when introduced, only their controls may require connectivity.
+Offline is normal. When the browser reports no connection, the library header displays **Offline · local library ready** rather than a global error. Import, metadata search, format filters, details, edits, deletion, and Phase 4 PDF/EPUB reading continue through local services. Optional cloud features are not present yet; when introduced, only their controls may require connectivity.
 
 The library includes:
 
@@ -65,7 +65,7 @@ The library includes:
 - All/PDF/EPUB format filters;
 - accessible loading, empty, no-results, storage, install, update, and offline states.
 
-Actual PDF/EPUB reading remains Phase 4. Selecting a book currently opens its local details.
+Selecting a book opens local details; **Open book** then navigates to `/read/<book UUID>`. The same cached navigation fallback loads that route offline, and the reader resolves the record/binary from IndexedDB/OPFS. Reader chunks are precached rather than fetched from a CDN.
 
 ## Storage durability is separate from offline caching
 
