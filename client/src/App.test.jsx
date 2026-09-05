@@ -5,10 +5,14 @@ import App from './App.jsx'
 describe('offline local library App', () => {
   let libraryService
   let pwaService
+  let navigation
+  let readerService
 
   beforeEach(() => {
     libraryService = createLibraryService()
     pwaService = createPwaService()
+    navigation = createNavigation()
+    readerService = { open: vi.fn() }
   })
 
   it('boots dashboard and catalog views from local state without a cloud API', async () => {
@@ -90,6 +94,15 @@ describe('offline local library App', () => {
     expect(screen.getByText('Your shelf is ready')).toBeInTheDocument()
   })
 
+  it('opens a selected local book through the reader route boundary', async () => {
+    libraryService.initialize.mockResolvedValue([book()])
+    renderApp()
+    const catalog = await screen.findByRole('region', { name: 'My Library' })
+    fireEvent.click(within(catalog).getByRole('button', { name: /Existing Book/ }))
+    fireEvent.click(within(screen.getByLabelText('Book details')).getByRole('button', { name: 'Open book' }))
+    expect(navigation.openReader).toHaveBeenCalledWith('book-1')
+  })
+
   it('keeps storage and import failures recoverable without losing the catalog', async () => {
     libraryService.initialize.mockResolvedValue([book()])
     libraryService.inspectStorage.mockRejectedValue(new Error('Storage estimate failed.'))
@@ -125,7 +138,12 @@ describe('offline local library App', () => {
   })
 
   function renderApp() {
-    return render(<App libraryService={libraryService} pwaService={pwaService} />)
+    return render(<App
+      libraryService={libraryService}
+      readerService={readerService}
+      pwaService={pwaService}
+      navigation={navigation}
+    />)
   }
 })
 
@@ -137,6 +155,15 @@ function createLibraryService() {
     importBook: vi.fn(),
     updateBook: vi.fn(),
     deleteBook: vi.fn(),
+  }
+}
+
+function createNavigation() {
+  return {
+    subscribe: vi.fn(() => () => {}),
+    getSnapshot: vi.fn(() => null),
+    openReader: vi.fn(),
+    openLibrary: vi.fn(),
   }
 }
 

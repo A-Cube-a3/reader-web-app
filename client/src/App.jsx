@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { localApplication } from './app/createLocalLibrary.js'
 import { webPwaService } from './platform/web/pwaService.js'
+import { webNavigation } from './platform/web/navigation.js'
+import ReaderRoute from './routes/ReaderRoute.jsx'
 import {
   filterLibrary,
   getContinueReading,
@@ -10,7 +12,9 @@ import {
 
 export default function App({
   libraryService = localApplication.library,
+  readerService = localApplication.reader,
   pwaService = webPwaService,
+  navigation = webNavigation,
 }) {
   const [books, setBooks] = useState([])
   const [selectedFile, setSelectedFile] = useState(null)
@@ -27,6 +31,11 @@ export default function App({
     pwaService.subscribe,
     pwaService.getSnapshot,
     pwaService.getSnapshot,
+  )
+  const readerBookId = useSyncExternalStore(
+    navigation.subscribe,
+    navigation.getSnapshot,
+    navigation.getSnapshot,
   )
 
   const selectedBook = useMemo(
@@ -171,6 +180,10 @@ export default function App({
   function clearMessages() {
     setError(null)
     setNotice(null)
+  }
+
+  if (readerBookId) {
+    return <ReaderRoute bookId={readerBookId} readerService={readerService} navigation={navigation} />
   }
 
   return (
@@ -321,6 +334,7 @@ export default function App({
                 disabled={working}
                 onSave={saveMetadata}
                 onDelete={deleteBook}
+                onOpen={() => navigation.openReader(selectedBook.id)}
               />
             ) : (
               <div className="detailPlaceholder">
@@ -428,7 +442,7 @@ function StorageSummary({ storage, onRequest }) {
   )
 }
 
-function BookDetails({ book, disabled, onSave, onDelete }) {
+function BookDetails({ book, disabled, onSave, onDelete, onOpen }) {
   return (
     <form className="detailsForm" onSubmit={onSave}>
       <div className="detailTitle">
@@ -452,6 +466,7 @@ function BookDetails({ book, disabled, onSave, onDelete }) {
         <div><dt>Metadata</dt><dd>{book.metadataSource?.type || 'filename'}</dd></div>
       </dl>
       <div className="detailActions">
+        <button className="primaryButton" disabled={disabled} onClick={onOpen} type="button">Open book</button>
         <button className="primaryButton" disabled={disabled} type="submit">Save details</button>
         <button className="dangerButton" disabled={disabled} onClick={onDelete} type="button">
           Delete local book

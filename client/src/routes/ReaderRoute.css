@@ -1,0 +1,58 @@
+.readerShell { display: grid; min-height: 100vh; grid-template-rows: auto 1fr auto; background: #242723; color: #f6f1e7; }
+.readerHeader, .readerControls { position: relative; z-index: 5; display: flex; gap: 12px; align-items: center; background: #17231f; padding: 10px 16px; box-shadow: 0 2px 16px rgba(0, 0, 0, .24); }
+.readerHeader button, .readerControls button, .readerControls select, .readerControls input, .readerSidebar button, .readerSearch input { border: 1px solid #64776e; border-radius: 8px; background: #f9f5ec; padding: 8px 11px; color: #1f382f; font: inherit; }
+.readerHeader button:disabled, .readerControls button:disabled { opacity: .45; }
+.readerBack { white-space: nowrap; }
+.readerIdentity { display: grid; min-width: 0; flex: 1; }
+.readerIdentity strong, .readerIdentity span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.readerIdentity strong { font-family: Georgia, serif; }
+.readerIdentity span { color: #bfc9c2; font-size: .76rem; }
+.readerHeaderActions { display: flex; gap: 8px; align-items: center; }
+.readerProgress { min-width: 42px; color: #e6d6bc; font-weight: 800; text-align: right; }
+.readerWorkspace { display: grid; min-height: 0; grid-template-columns: auto 1fr; }
+.readerSidebar { width: min(340px, 88vw); overflow: auto; border-right: 1px solid #405149; background: #f7f1e7; padding: 16px; color: #29241f; }
+.readerSidebarHeading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.readerSidebarHeading h2 { margin: 0; font-size: 1.25rem; }
+.readerSidebarHeading button { border: 0; background: transparent; padding: 2px 8px; font-size: 1.6rem; }
+.tocList, .searchResults { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.tocList .tocList { margin: 4px 0 2px 13px; border-left: 1px solid #d5cabb; padding-left: 9px; }
+.tocList button, .tocList span { display: block; width: 100%; border: 0; background: transparent; padding: 7px 8px; color: #3a332d; text-align: left; }
+.tocList button:hover { background: #e9e0d2; }
+.readerSearch { display: grid; gap: 7px; }
+.readerSearch label { font-size: .78rem; font-weight: 800; }
+.readerSearch > div { display: flex; gap: 6px; }
+.readerSearch input { min-width: 0; flex: 1; background: white; }
+.searchResults { margin-top: 14px; }
+.searchResults button { display: grid; width: 100%; gap: 4px; background: white; text-align: left; }
+.searchResults span { color: #686058; font-size: .78rem; }
+.readerEmpty { color: #71685f; font-size: .86rem; }
+.readerMain { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.readerStage { position: absolute; inset: 0; overflow: auto; background: #313531; padding: 18px; }
+.readerStage > foliate-view { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 5px; background: #fffdf8; color: #241f1a; }
+.pdfReaderPage { position: relative; margin: 0 auto; overflow: hidden; background: white; box-shadow: 0 5px 25px rgba(0, 0, 0, .35); }
+.pdfReaderPage canvas { display: block; }
+.pdfReaderPage .textLayer { --min-font-size: 1; --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size)); --min-font-size-inv: calc(1 / var(--min-font-size)); position: absolute; inset: 0; z-index: 1; overflow: hidden; opacity: 1; color-scheme: only light; line-height: 1; letter-spacing: normal; word-spacing: normal; text-align: initial; text-size-adjust: none; transform-origin: 0 0; }
+.pdfReaderPage .textLayer :is(span, br) { position: absolute; color: transparent; cursor: text; white-space: pre; user-select: text; transform-origin: 0 0; }
+.pdfReaderPage .textLayer > :not(.markedContent), .pdfReaderPage .textLayer .markedContent span:not(.markedContent) { --font-height: 0; --scale-x: 1; --rotate: 0deg; z-index: 1; font-size: calc(var(--text-scale-factor) * var(--font-height)); transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv)); }
+.pdfReaderPage .textLayer .markedContent { display: contents; }
+.pdfReaderPage .textLayer ::selection { background: rgba(28, 102, 189, .3); color: transparent; }
+.pdfReaderPage .textLayer .endOfContent { position: absolute; inset: 100% 0 0; display: block; user-select: none; }
+.readerLoading { position: absolute; z-index: 3; inset: 0; display: grid; place-content: center; background: #313531; color: #f3eadc; }
+.readerMessage { position: absolute; z-index: 4; top: 12px; left: 50%; display: flex; max-width: min(680px, 90%); gap: 12px; align-items: center; transform: translateX(-50%); border: 1px solid #a1b2a8; border-radius: 10px; background: #eff8f1; padding: 10px 13px; color: #254d36; box-shadow: 0 5px 20px rgba(0, 0, 0, .2); }
+.readerMessage > span, .readerMessage > strong { flex: 1; }
+.readerMessage button { border: 0; background: none; color: inherit; font-weight: 800; }
+.readerError { display: grid; border-color: #d58f7d; background: #fff0ec; color: #872a1e; }
+.readerControls { justify-content: center; overflow-x: auto; white-space: nowrap; }
+.readerControls > span { font-size: .8rem; }
+.pageJump, .compactControl { display: flex; gap: 6px; align-items: center; font-size: .78rem; font-weight: 800; }
+.pageJump input { width: 62px; padding: 7px; }
+.compactControl select { padding: 7px; font-weight: 500; }
+
+@media (max-width: 760px) {
+  .readerHeader { flex-wrap: wrap; }
+  .readerIdentity { order: -1; width: 100%; flex-basis: 100%; }
+  .readerHeaderActions { margin-left: auto; }
+  .readerSidebar { position: absolute; z-index: 6; top: 0; bottom: 0; left: 0; box-shadow: 8px 0 30px rgba(0, 0, 0, .32); }
+  .readerStage { padding: 8px; }
+  .readerControls { justify-content: flex-start; padding: 8px; }
+}
