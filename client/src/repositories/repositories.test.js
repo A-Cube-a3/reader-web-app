@@ -3,6 +3,11 @@ import { IndexedDbBooksRepository } from './books/IndexedDbBooksRepository.js'
 import { IndexedDbLibraryRepository } from './library/IndexedDbLibraryRepository.js'
 import { IndexedDbProgressRepository } from './progress/IndexedDbProgressRepository.js'
 import { IndexedDbSettingsRepository } from './settings/IndexedDbSettingsRepository.js'
+import {
+  IndexedDbBookmarkRepository,
+  IndexedDbHighlightRepository,
+  IndexedDbNoteRepository,
+} from './annotations/IndexedDbAnnotationRepositories.js'
 import { deleteLocalDatabase, openLocalDatabase } from '../storage/database/schema.js'
 
 describe('IndexedDB repositories', () => {
@@ -12,6 +17,9 @@ describe('IndexedDB repositories', () => {
   let progress
   let settings
   let library
+  let bookmarks
+  let highlights
+  let notes
 
   beforeEach(async () => {
     databaseName = `reader-repositories-${crypto.randomUUID()}`
@@ -20,6 +28,9 @@ describe('IndexedDB repositories', () => {
     progress = new IndexedDbProgressRepository(database, () => '2026-02-02T00:00:00.000Z')
     settings = new IndexedDbSettingsRepository(database, () => '2026-02-02T00:00:00.000Z')
     library = new IndexedDbLibraryRepository(database, () => '2026-02-02T00:00:00.000Z')
+    bookmarks = new IndexedDbBookmarkRepository(database)
+    highlights = new IndexedDbHighlightRepository(database)
+    notes = new IndexedDbNoteRepository(database)
   })
 
   afterEach(async () => {
@@ -58,15 +69,37 @@ describe('IndexedDB repositories', () => {
   it('deletes a book and progress atomically while queuing binary cleanup', async () => {
     await library.addBook(book('one', '2026-01-01T00:00:00.000Z'))
     await progress.set('one', { progression: 0.5 })
+    await bookmarks.add(annotation('bookmark', 'one'))
+    await highlights.add(annotation('highlight', 'one'))
+    await notes.add(annotation('note', 'one'))
 
     await library.deleteBookAndQueueBinaries('one', ['opfs:v1:book', 'opfs:v1:cover'])
 
     expect(await books.get('one')).toBeUndefined()
     expect(await progress.get('one')).toBeUndefined()
+    expect(await bookmarks.listByBook('one')).toEqual([])
+    expect(await highlights.listByBook('one')).toEqual([])
+    expect(await notes.listByBook('one')).toEqual([])
     expect(await library.listBinaryCleanup()).toEqual([
       expect.objectContaining({ reference: 'opfs:v1:book', bookId: 'one', attempts: 0 }),
       expect.objectContaining({ reference: 'opfs:v1:cover', bookId: 'one', attempts: 0 }),
     ])
+  })
+
+  it('persists book-scoped bookmarks, highlights, and editable notes', async () => {
+    await bookmarks.add(annotation('bookmark', 'one'))
+    await highlights.add(annotation('highlight', 'one'))
+    await notes.add({ ...annotation('note', 'one'), highlightId: 'highlight' })
+    await notes.add(annotation('other-note', 'two'))
+
+    expect((await bookmarks.listByBook('one')).map(({ id }) => id)).toEqual(['bookmark'])
+    expect((await highlights.listByBook('one')).map(({ id }) => id)).toEqual(['highlight'])
+    expect((await notes.listByHighlight('highlight')).map(({ id }) => id)).toEqual(['note'])
+
+    await notes.put({ ...(await notes.get('note')), body: 'Edited' })
+    expect((await notes.get('note')).body).toBe('Edited')
+    await bookmarks.delete('bookmark')
+    expect(await bookmarks.get('bookmark')).toBeUndefined()
   })
 })
 
@@ -78,5 +111,15 @@ function book(id, updatedAt) {
     binaryReference: `opfs:v1:${id}`,
     importedAt: updatedAt,
     updatedAt,
+  }
+}
+
+function annotation(id, bookId) {
+  return {
+    id,
+    bookId,
+    body: id,
+    createdAt: '2026-02-01T00:00:00.000Z',
+    updatedAt: '2026-02-01T00:00:00.000Z',
   }
 }

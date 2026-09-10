@@ -25,10 +25,12 @@ export class PdfReaderEngine extends ReaderEngine {
     })
     this.loadPdfModule = loadPdfModule
     this.devicePixelRatio = devicePixelRatio
-    this.preferences = { fit: 'fit-width', zoom: 1, rotation: 0 }
+    this.preferences = { fit: 'fit-width', zoom: 1, rotation: 0, theme: 'dark' }
+    this.highlights = []
     this.pageNumber = 1
     this.pageCount = 0
     this.tableOfContents = []
+    this.restoreWarning = null
     this.renderVersion = 0
   }
 
@@ -48,9 +50,11 @@ export class PdfReaderEngine extends ReaderEngine {
     })
     this.document = await this.loadingTask.promise
     this.pageCount = this.document.numPages
-    this.pageNumber = locator
-      ? validateReadingLocator(locator, 'pdf').pdf.page
-      : 1
+    const savedPage = locator ? validateReadingLocator(locator, 'pdf').pdf.page : 1
+    this.restoreWarning = savedPage > this.pageCount
+      ? 'The saved PDF page is outside this copy of the book. Opened at page 1.'
+      : null
+    this.pageNumber = this.restoreWarning ? 1 : savedPage
     this.tableOfContents = await resolveOutline(this.document, this.pageCount)
     this.emit(READER_EVENTS.STATE, { state: this.getState() })
     this.emitLocation()
@@ -71,7 +75,9 @@ export class PdfReaderEngine extends ReaderEngine {
     this.canvas.setAttribute('aria-label', `PDF page ${this.pageNumber}`)
     this.textLayerElement = doc.createElement('div')
     this.textLayerElement.className = 'textLayer'
-    this.pageElement.append(this.canvas, this.textLayerElement)
+    this.highlightLayerElement = doc.createElement('div')
+    this.highlightLayerElement.className = 'pdfHighlightLayer'
+    this.pageElement.append(this.canvas, this.highlightLayerElement, this.textLayerElement)
     container.replaceChildren(this.pageElement)
     this.captureSelection = () => this.emitSelection()
     this.textLayerElement.addEventListener('pointerup', this.captureSelection)
@@ -98,6 +104,7 @@ export class PdfReaderEngine extends ReaderEngine {
     this.pageElement = null
     this.canvas = null
     this.textLayerElement = null
+    this.highlightLayerElement = null
   }
 
   async close() {
@@ -109,6 +116,7 @@ export class PdfReaderEngine extends ReaderEngine {
     this.pageNumber = 1
     this.pageCount = 0
     this.tableOfContents = []
+    this.restoreWarning = null
     if (document?.destroy) await document.destroy()
     else if (loadingTask?.destroy) await loadingTask.destroy()
     this.destroySubscriptions()
@@ -121,12 +129,17 @@ export class PdfReaderEngine extends ReaderEngine {
       pageCount: this.pageCount,
       preferences: { ...this.preferences },
       locator: this.pageCount ? this.getCurrentLocator() : null,
+      restoreWarning: this.restoreWarning,
     }
   }
 
   getCurrentLocator() {
     if (!this.pageCount) return null
-    return createPdfLocator({ page: this.pageNumber, pageCount: this.pageCount })
+    return createPdfLocator({
+      page: this.pageNumber,
+      pageCount: this.pageCount,
+      rotation: this.preferences.rotation,
+    })
   }
 
   getTableOfContents() {
@@ -185,6 +198,11 @@ export class PdfReaderEngine extends ReaderEngine {
     return results
   }
 
+  async setHighlights(highlights = []) {
+    this.highlights = highlights.filter((highlight) => highlight?.locator?.format === 'pdf')
+    this.renderHighlights()
+  }
+
   async renderCurrentPage() {
     if (!this.container || !this.document) return
     const version = ++this.renderVersion
@@ -214,6 +232,9 @@ export class PdfReaderEngine extends ReaderEngine {
       this.textLayerElement.style.setProperty('--total-scale-factor', String(viewport.scale))
       this.textLayerElement.style.width = this.canvas.style.width
       this.textLayerElement.style.height = this.canvas.style.height
+      this.highlightLayerElement.style.width = this.canvas.style.width
+      this.highlightLayerElement.style.height = this.canvas.style.height
+      this.renderHighlights()
 
       this.renderTask = page.render({
         canvasContext: context,
@@ -264,9 +285,32 @@ export class PdfReaderEngine extends ReaderEngine {
         pageCount: this.pageCount,
         textQuote: { exact },
         geometry: geometry.length ? geometry : undefined,
+        rotation: this.preferences.rotation,
       }),
       text: exact,
     })
+  }
+
+  renderHighlights() {
+    if (!this.highlightLayerElement) return
+    this.highlightLayerElement.replaceChildren()
+    const doc = this.highlightLayerElement.ownerDocument
+    for (const highlight of this.highlights) {
+      const locator = highlight.locator
+      if (locator.pdf?.page !== this.pageNumber || !Array.isArray(locator.pdf.geometry)) continue
+      const rotation = locator.pdf.rotation || 0
+      for (const rectangle of locator.pdf.geometry) {
+        const transformed = rotateRectangle(rectangle, this.preferences.rotation - rotation)
+        const marker = doc.createElement('span')
+        marker.dataset.highlightId = highlight.id
+        marker.dataset.color = highlight.color || 'yellow'
+        marker.style.left = `${transformed.x * 100}%`
+        marker.style.top = `${transformed.y * 100}%`
+        marker.style.width = `${transformed.width * 100}%`
+        marker.style.height = `${transformed.height * 100}%`
+        this.highlightLayerElement.append(marker)
+      }
+    }
   }
 }
 
@@ -289,7 +333,8 @@ function normalizePreferences(preferences) {
   const rotation = Number.isFinite(preferences.rotation)
     ? ((Math.round(preferences.rotation / 90) * 90) % 360 + 360) % 360
     : 0
-  return { fit, zoom, rotation }
+  const theme = ['dark', 'light', 'sepia'].includes(preferences.theme) ? preferences.theme : 'dark'
+  return { fit, zoom, rotation, theme }
 }
 
 function scaleFor(preferences, viewport, container) {
@@ -358,4 +403,27 @@ function excerptAround(text, offset, length) {
 
 function clamp(value) {
   return Math.max(0, Math.min(1, value))
+}
+
+function rotateRectangle(rectangle, rotation) {
+  const normalized = ((rotation % 360) + 360) % 360
+  if (normalized === 90) return {
+    x: 1 - rectangle.y - rectangle.height,
+    y: rectangle.x,
+    width: rectangle.height,
+    height: rectangle.width,
+  }
+  if (normalized === 180) return {
+    x: 1 - rectangle.x - rectangle.width,
+    y: 1 - rectangle.y - rectangle.height,
+    width: rectangle.width,
+    height: rectangle.height,
+  }
+  if (normalized === 270) return {
+    x: rectangle.y,
+    y: 1 - rectangle.x - rectangle.width,
+    width: rectangle.height,
+    height: rectangle.width,
+  }
+  return rectangle
 }

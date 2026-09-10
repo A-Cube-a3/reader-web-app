@@ -1,13 +1,16 @@
 import { deleteDB, openDB } from 'idb'
 
 export const DATABASE_NAME = 'reader-local-library'
-export const DATABASE_VERSION = 2
+export const DATABASE_VERSION = 3
 
 export const STORES = Object.freeze({
   BOOKS: 'books',
   PROGRESS: 'progress',
   SETTINGS: 'settings',
   BINARY_CLEANUP: 'binary-cleanup',
+  BOOKMARKS: 'bookmarks',
+  HIGHLIGHTS: 'highlights',
+  NOTES: 'notes',
 })
 
 export function openLocalDatabase({ name = DATABASE_NAME, version = DATABASE_VERSION } = {}) {
@@ -44,6 +47,18 @@ export async function runMigrations(database, oldVersion, newVersion, transactio
 
     database.createObjectStore(STORES.BINARY_CLEANUP, { keyPath: 'reference' })
     await migrateVersionOneBooks(books)
+  }
+
+  if (oldVersion < 3 && targetVersion >= 3) {
+    const bookmarks = database.createObjectStore(STORES.BOOKMARKS, { keyPath: 'id' })
+    bookmarks.createIndex('by-book-id', 'bookId')
+
+    const highlights = database.createObjectStore(STORES.HIGHLIGHTS, { keyPath: 'id' })
+    highlights.createIndex('by-book-id', 'bookId')
+
+    const notes = database.createObjectStore(STORES.NOTES, { keyPath: 'id' })
+    notes.createIndex('by-book-id', 'bookId')
+    notes.createIndex('by-highlight-id', 'highlightId')
   }
 }
 

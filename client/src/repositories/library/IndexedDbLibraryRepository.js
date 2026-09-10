@@ -21,7 +21,14 @@ export class IndexedDbLibraryRepository {
     try {
       const database = await this.database
       const transaction = database.transaction(
-        [STORES.BOOKS, STORES.PROGRESS, STORES.BINARY_CLEANUP],
+        [
+          STORES.BOOKS,
+          STORES.PROGRESS,
+          STORES.BOOKMARKS,
+          STORES.HIGHLIGHTS,
+          STORES.NOTES,
+          STORES.BINARY_CLEANUP,
+        ],
         'readwrite',
       )
       const timestamp = this.clock()
@@ -35,6 +42,9 @@ export class IndexedDbLibraryRepository {
           lastError: null,
         })
       }
+      await deleteBookRecords(transaction.objectStore(STORES.BOOKMARKS), bookId)
+      await deleteBookRecords(transaction.objectStore(STORES.HIGHLIGHTS), bookId)
+      await deleteBookRecords(transaction.objectStore(STORES.NOTES), bookId)
       await transaction.objectStore(STORES.PROGRESS).delete(bookId)
       await transaction.objectStore(STORES.BOOKS).delete(bookId)
       await transaction.done
@@ -93,5 +103,13 @@ export class IndexedDbLibraryRepository {
     } catch (cause) {
       throw new DatabaseError({ cause })
     }
+  }
+}
+
+async function deleteBookRecords(store, bookId) {
+  let cursor = await store.index('by-book-id').openKeyCursor(bookId)
+  while (cursor) {
+    await store.delete(cursor.primaryKey)
+    cursor = await cursor.continue()
   }
 }

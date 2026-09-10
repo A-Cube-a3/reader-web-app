@@ -28,8 +28,8 @@ Tauri, a native desktop wrapper, a frontend TypeScript migration, and rewrites i
 | 1 | `phase/01-baseline-stabilization` | Complete — PR #2, merge `6cbba85` | Phase 0 PR merged |
 | 2 | `phase/02-local-library` | Complete — PR #3, merge `75afcf2` | Phase 1 PR merged |
 | 3 | `phase/03-offline-pwa-library` | Complete — PR #4, merge `66163a5` | Phase 2 PR merged |
-| 4 | `phase/04-reading-engines` | Acceptance met; merge pending | Phase 3 PR merged |
-| 5 | `phase/05-reading-tools` | Planned | Phase 4 PR merged |
+| 4 | `phase/04-reading-engines` | Complete — PR #5, merge `3541db6` | Phase 3 PR merged |
+| 5 | `phase/05-reading-tools` | Acceptance met; merge pending | Phase 4 PR merged |
 | 6 | `phase/06-library-knowledge` | Planned | Phase 5 PR merged |
 | 7 | `phase/07-native-mobile` | Planned | Phase 6 PR merged |
 | 8 | `phase/08-cloud-sync` | Planned | Phase 7 PR merged |

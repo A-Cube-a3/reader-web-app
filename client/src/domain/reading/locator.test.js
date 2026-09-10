@@ -12,6 +12,7 @@ describe('application reading locators', () => {
       pageCount: 5,
       textQuote: { exact: ' selected   words ', prefix: 'before', suffix: 'after' },
       geometry: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.04 }],
+      rotation: -90,
     })).toEqual({
       version: 1,
       format: 'pdf',
@@ -21,6 +22,7 @@ describe('application reading locators', () => {
         pageCount: 5,
         textQuote: { exact: 'selected words', prefix: 'before', suffix: 'after' },
         geometry: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.04 }],
+        rotation: 270,
       },
     })
   })

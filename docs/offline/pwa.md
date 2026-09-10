@@ -8,7 +8,7 @@ Local library records remain in IndexedDB and imported book/cover binaries remai
 
 ```text
 Cache Storage   -> versioned application shell and bundled runtime assets
-IndexedDB       -> book metadata, progress foundation, settings, cleanup intent
+IndexedDB       -> book metadata, progress, annotations, preferences, cleanup intent
 OPFS            -> copied PDF/EPUB and cover binaries
 ```
 
@@ -55,7 +55,7 @@ The first successful worker installation produces a dismissible **Ready offline*
 
 ## Offline and connectivity UX
 
-Offline is normal. When the browser reports no connection, the library header displays **Offline · local library ready** rather than a global error. Import, metadata search, format filters, details, edits, deletion, and Phase 4 PDF/EPUB reading continue through local services. Optional cloud features are not present yet; when introduced, only their controls may require connectivity.
+Offline is normal. When the browser reports no connection, the library header displays **Offline · local library ready** rather than a global error. Import, metadata search, format filters, details, edits, deletion, PDF/EPUB reading, resume, bookmarks, highlights, notes, annotation search, and reader preferences continue through local services. Optional cloud features are not present yet; when introduced, only their controls may require connectivity.
 
 The library includes:
 

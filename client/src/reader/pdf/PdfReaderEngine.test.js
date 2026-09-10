@@ -45,7 +45,35 @@ describe('PdfReaderEngine', () => {
     await engine.open({ source: new Blob(['%PDF']) })
 
     await expect(engine.setViewPreferences({ fit: 'custom', zoom: 8, rotation: -90 }))
-      .resolves.toEqual({ fit: 'custom', zoom: 4, rotation: 270 })
+      .resolves.toEqual({ fit: 'custom', zoom: 4, rotation: 270, theme: 'dark' })
+  })
+
+  it('recovers from a saved page that is outside the current local copy', async () => {
+    const { module } = fakePdfModule()
+    const engine = new PdfReaderEngine({ loadPdfModule: async () => module })
+    await engine.open({
+      source: new Blob(['%PDF']),
+      locator: { version: 1, format: 'pdf', progression: 1, pdf: { page: 4, pageCount: 4 } },
+    })
+
+    expect(engine.getState()).toMatchObject({ page: 1, restoreWarning: expect.stringMatching(/page 1/) })
+  })
+
+  it('renders normalized highlight geometry without changing its text anchor', async () => {
+    const engine = new PdfReaderEngine()
+    engine.pageNumber = 1
+    engine.highlightLayerElement = document.createElement('div')
+    const highlight = {
+      id: 'highlight', color: 'green',
+      locator: {
+        version: 1, format: 'pdf', progression: 0,
+        pdf: { page: 1, pageCount: 3, textQuote: { exact: 'local', prefix: '', suffix: '' }, geometry: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.04 }] },
+      },
+    }
+
+    await engine.setHighlights([highlight])
+    expect(engine.highlightLayerElement.firstElementChild).toMatchObject({ dataset: expect.objectContaining({ highlightId: 'highlight', color: 'green' }) })
+    expect(highlight.locator.pdf.textQuote.exact).toBe('local')
   })
 })
 
