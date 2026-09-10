@@ -9,16 +9,23 @@ import { sanitizeEpubResource } from './sanitizeEpubResource.js'
 const MAX_SEARCH_RESULTS = 200
 
 export class EpubReaderEngine extends ReaderEngine {
-  constructor({ loadEpubModule = () => import('foliate-js/view.js') } = {}) {
+  constructor({
+    loadEpubModule = () => import('foliate-js/view.js'),
+    loadOverlayerModule = () => import('foliate-js/overlayer.js'),
+  } = {}) {
     super({
       format: 'epub',
       capabilities: { ...BASE_READER_CAPABILITIES, scrolling: true },
     })
     this.loadEpubModule = loadEpubModule
-    this.preferences = { flow: 'paginated', fontSize: 100, lineHeight: 1.5, contentWidth: 720, theme: 'paper' }
+    this.loadOverlayerModule = loadOverlayerModule
+    this.preferences = { flow: 'paginated', fontSize: 100, fontFamily: 'serif', lineHeight: 1.5, contentWidth: 720, theme: 'paper' }
     this.tableOfContents = []
+    this.highlights = []
     this.selectionListeners = new Map()
     this.selectionTimers = new Map()
+    this.restoreWarning = null
+    this.annotationWarning = null
   }
 
   async open({ source, locator = null, preferences = {} }) {
@@ -27,6 +34,7 @@ export class EpubReaderEngine extends ReaderEngine {
     }
     await this.close()
     this.epubModule = await this.loadEpubModule()
+    this.overlayerModule = await this.loadOverlayerModule()
     this.book = await this.epubModule.makeBook(source)
     this.preferences = normalizePreferences({ ...this.preferences, ...preferences })
     this.transformListener = ({ detail }) => {
@@ -37,6 +45,7 @@ export class EpubReaderEngine extends ReaderEngine {
     this.book.transformTarget?.addEventListener('data', this.transformListener)
     this.tableOfContents = mapTableOfContents(this.book.toc || [])
     this.resumeLocator = locator ? validateReadingLocator(locator, 'epub') : null
+    this.restoreWarning = null
     this.currentLocator = this.resumeLocator
     this.emit(READER_EVENTS.STATE, { state: this.getState() })
     if (this.currentLocator) this.emit(READER_EVENTS.LOCATION, { locator: this.currentLocator })
@@ -54,11 +63,21 @@ export class EpubReaderEngine extends ReaderEngine {
     this.view.addEventListener('relocate', this.handleRelocate)
     this.view.addEventListener('load', this.handleLoad)
     this.view.addEventListener('external-link', this.handleExternalLink)
+    this.view.addEventListener('create-overlay', this.handleCreateOverlay)
+    this.view.addEventListener('show-annotation', this.handleShowAnnotation)
+    this.view.addEventListener('draw-annotation', this.handleDrawAnnotation)
     container.replaceChildren(this.view)
     await this.view.open(this.book)
     this.applyLayoutPreferences()
+    let resumeCfi = this.resumeLocator?.epub.cfi || null
+    if (resumeCfi && !await this.view.resolveNavigation(resumeCfi)) {
+      resumeCfi = null
+      this.resumeLocator = null
+      this.currentLocator = null
+      this.restoreWarning = 'The saved EPUB location no longer exists in this copy. Opened at the beginning.'
+    }
     await this.view.init({
-      lastLocation: this.resumeLocator?.epub.cfi || null,
+      lastLocation: resumeCfi,
       showTextStart: false,
     })
     this.applyStyles()
@@ -94,6 +113,26 @@ export class EpubReaderEngine extends ReaderEngine {
     this.emit('external-link', { href: event.detail?.href || '' })
   }
 
+  handleCreateOverlay = ({ detail }) => {
+    for (const highlight of this.highlights) {
+      if (highlight.locator?.epub?.spineIndex === detail.index) {
+        void this.view.addAnnotation(toFoliateAnnotation(highlight))
+          .catch((error) => this.emit(READER_EVENTS.ERROR, { error }))
+      }
+    }
+  }
+
+  handleDrawAnnotation = ({ detail }) => {
+    detail.draw(this.overlayerModule.Overlayer.highlight, {
+      color: highlightColor(detail.annotation.color),
+    })
+  }
+
+  handleShowAnnotation = ({ detail }) => {
+    const highlight = this.highlights.find((item) => item.locator?.epub?.cfi === detail.value)
+    if (highlight) this.emit('highlight-activate', { highlightId: highlight.id })
+  }
+
   detach() {
     for (const [doc, listener] of this.selectionListeners) {
       doc.removeEventListener('selectionchange', listener)
@@ -104,6 +143,9 @@ export class EpubReaderEngine extends ReaderEngine {
     this.view?.removeEventListener('relocate', this.handleRelocate)
     this.view?.removeEventListener('load', this.handleLoad)
     this.view?.removeEventListener('external-link', this.handleExternalLink)
+    this.view?.removeEventListener('create-overlay', this.handleCreateOverlay)
+    this.view?.removeEventListener('draw-annotation', this.handleDrawAnnotation)
+    this.view?.removeEventListener('show-annotation', this.handleShowAnnotation)
     this.view?.close?.()
     this.view?.remove?.()
     this.container?.replaceChildren()
@@ -121,6 +163,8 @@ export class EpubReaderEngine extends ReaderEngine {
     this.resumeLocator = null
     this.tableOfContents = []
     this.currentLocator = null
+    this.restoreWarning = null
+    this.annotationWarning = null
     this.destroySubscriptions()
   }
 
@@ -130,6 +174,8 @@ export class EpubReaderEngine extends ReaderEngine {
       locator: this.currentLocator,
       preferences: { ...this.preferences },
       sectionCount: this.book?.sections?.length || 0,
+      restoreWarning: this.restoreWarning,
+      annotationWarning: this.annotationWarning,
     }
   }
 
@@ -166,6 +212,31 @@ export class EpubReaderEngine extends ReaderEngine {
     this.applyPreferences()
     this.emit(READER_EVENTS.STATE, { state: this.getState() })
     return { ...this.preferences }
+  }
+
+  async setHighlights(highlights = []) {
+    const previous = this.highlights
+    this.highlights = highlights.filter((highlight) => highlight?.locator?.format === 'epub')
+    if (!this.view) return
+    for (const highlight of previous) {
+      try {
+        await this.view.deleteAnnotation?.(toFoliateAnnotation(highlight))
+      } catch {
+        // A stale CFI should not prevent other local annotations from loading.
+      }
+    }
+    let unresolved = 0
+    for (const highlight of this.highlights) {
+      try {
+        await this.view.addAnnotation?.(toFoliateAnnotation(highlight))
+      } catch {
+        unresolved += 1
+      }
+    }
+    this.annotationWarning = unresolved
+      ? `${unresolved} saved highlight${unresolved === 1 ? '' : 's'} could not be placed in this copy of the EPUB.`
+      : null
+    this.emit(READER_EVENTS.STATE, { state: this.getState() })
   }
 
   applyPreferences() {
@@ -236,6 +307,7 @@ function normalizePreferences(preferences) {
   return {
     flow: preferences.flow === 'scrolled' ? 'scrolled' : 'paginated',
     fontSize: clampNumber(preferences.fontSize, 70, 200, 100),
+    fontFamily: ['serif', 'sans-serif'].includes(preferences.fontFamily) ? preferences.fontFamily : 'serif',
     lineHeight: clampNumber(preferences.lineHeight, 1.1, 2.2, 1.5),
     contentWidth: clampNumber(preferences.contentWidth, 420, 1100, 720),
     theme: ['paper', 'sepia', 'night'].includes(preferences.theme) ? preferences.theme : 'paper',
@@ -253,6 +325,7 @@ function epubStyles(preferences) {
     :root { color-scheme: ${preferences.theme === 'night' ? 'dark' : 'light'}; }
     html, body { color: ${theme.foreground} !important; background: ${theme.background} !important; }
     body { font-size: ${preferences.fontSize}% !important; }
+    body { font-family: ${preferences.fontFamily === 'sans-serif' ? 'system-ui, sans-serif' : 'Georgia, serif'} !important; }
     p, li, blockquote, dd { line-height: ${preferences.lineHeight} !important; }
     pre { white-space: pre-wrap !important; }
     img, svg, video { max-width: 100% !important; height: auto !important; }
@@ -310,4 +383,17 @@ function approximateProgress(index, total) {
 
 function clampNumber(value, minimum, maximum, fallback) {
   return Number.isFinite(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback
+}
+
+function toFoliateAnnotation(highlight) {
+  return { value: highlight.locator.epub.cfi, color: highlight.color, id: highlight.id }
+}
+
+function highlightColor(color) {
+  return {
+    yellow: '#f4d35e',
+    green: '#7bc47f',
+    blue: '#70a7e8',
+    pink: '#e99ab3',
+  }[color] || '#f4d35e'
 }

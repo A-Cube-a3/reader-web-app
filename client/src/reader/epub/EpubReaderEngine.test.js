@@ -4,7 +4,7 @@ import { EpubReaderEngine } from './EpubReaderEngine.js'
 describe('EpubReaderEngine', () => {
   it('opens a local Blob and maps TOC entries without inventing a content CFI', async () => {
     const { module } = fakeEpubModule()
-    const engine = new EpubReaderEngine({ loadEpubModule: async () => module })
+    const engine = createEngine(module)
     await engine.open({ source: new Blob(['epub']) })
 
     expect(module.makeBook).toHaveBeenCalled()
@@ -16,7 +16,7 @@ describe('EpubReaderEngine', () => {
 
   it('attaches one reflowable section, searches lazily, and blocks automatic external navigation', async () => {
     const { module, book, view } = fakeEpubModule()
-    const engine = new EpubReaderEngine({ loadEpubModule: async () => module })
+    const engine = createEngine(module)
     const events = []
     await engine.open({ source: new Blob(['epub']) })
     engine.subscribe((event) => events.push(event))
@@ -50,7 +50,7 @@ describe('EpubReaderEngine', () => {
 
   it('passes a complete saved CFI to the renderer when resuming', async () => {
     const { module, view } = fakeEpubModule()
-    const engine = new EpubReaderEngine({ loadEpubModule: async () => module })
+    const engine = createEngine(module)
     const locator = {
       version: 1,
       format: 'epub',
@@ -70,7 +70,37 @@ describe('EpubReaderEngine', () => {
       showTextStart: false,
     })
   })
+
+  it('recovers honestly when a saved CFI no longer resolves', async () => {
+    const { module, view } = fakeEpubModule()
+    view.resolveNavigation.mockResolvedValueOnce(null)
+    const engine = createEngine(module)
+    const locator = epubLocator()
+
+    await engine.open({ source: new Blob(['epub']), locator })
+    await engine.attach(document.createElement('div'))
+
+    expect(view.init).toHaveBeenCalledWith({ lastLocation: null, showTextStart: false })
+    expect(engine.getState().restoreWarning).toMatch(/beginning/)
+  })
+
+  it('passes CFI highlights through the Foliate annotation layer', async () => {
+    const { module, view } = fakeEpubModule()
+    const engine = createEngine(module)
+    await engine.open({ source: new Blob(['epub']) })
+    await engine.attach(document.createElement('div'))
+
+    await engine.setHighlights([{ id: 'highlight-id', color: 'blue', locator: epubLocator() }])
+    expect(view.addAnnotation).toHaveBeenCalledWith(expect.objectContaining({ value: epubLocator().epub.cfi, color: 'blue' }))
+  })
 })
+
+function createEngine(module) {
+  return new EpubReaderEngine({
+    loadEpubModule: async () => module,
+    loadOverlayerModule: async () => ({ Overlayer: { highlight: vi.fn() } }),
+  })
+}
 
 function fakeEpubModule() {
   const transformTarget = new EventTarget()
@@ -111,6 +141,8 @@ function fakeEpubModule() {
     yield 'done'
   }
   view.getCFI = vi.fn().mockReturnValue('epubcfi(/6/2!/4/2)')
+  view.addAnnotation = vi.fn().mockResolvedValue(undefined)
+  view.deleteAnnotation = vi.fn().mockResolvedValue(undefined)
   class View {
     constructor() { return view }
   }
@@ -118,5 +150,12 @@ function fakeEpubModule() {
     book,
     view,
     module: { makeBook: vi.fn().mockResolvedValue(book), View },
+  }
+}
+
+function epubLocator() {
+  return {
+    version: 1, format: 'epub', progression: 0.5,
+    epub: { cfi: 'epubcfi(/6/4!/4/2)', spineHref: 'text/two.xhtml', spineIndex: 1, textQuote: { exact: 'local', prefix: '', suffix: '' } },
   }
 }

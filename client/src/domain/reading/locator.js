@@ -6,6 +6,7 @@ export function createPdfLocator({
   progression,
   textQuote,
   geometry,
+  rotation,
 } = {}) {
   const locator = {
     version: READING_LOCATOR_VERSION,
@@ -14,6 +15,7 @@ export function createPdfLocator({
     pdf: {
       page,
       pageCount,
+      ...(Number.isFinite(rotation) ? { rotation: normalizeRotation(rotation) } : {}),
       ...(textQuote ? { textQuote: normalizeTextQuote(textQuote) } : {}),
       ...(geometry ? { geometry: normalizeGeometry(geometry) } : {}),
     },
@@ -68,6 +70,9 @@ function validatePdf(pdf) {
   }
   if (pdf.textQuote) normalizeTextQuote(pdf.textQuote)
   if (pdf.geometry) normalizeGeometry(pdf.geometry)
+  if (pdf.rotation !== undefined && normalizeRotation(pdf.rotation) !== pdf.rotation) {
+    throw new TypeError('A PDF locator rotation must be a normalized quarter turn')
+  }
 }
 
 function validateEpub(epub) {
@@ -125,4 +130,8 @@ function assertProgression(value) {
 
 function cleanText(value) {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
+}
+
+function normalizeRotation(value) {
+  return ((Math.round(value / 90) * 90) % 360 + 360) % 360
 }
