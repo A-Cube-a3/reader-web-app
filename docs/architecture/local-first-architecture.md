@@ -4,7 +4,7 @@
 
 The reader is an offline-capable application whose React core owns the complete reading experience. Local data is authoritative for responsiveness and availability. Spring Boot and MongoDB become an optional cloud companion; they are never on the critical path for opening a locally imported book.
 
-This is the target architecture. Delivery is staged by `docs/roadmap.md`; the local persistence/library/PWA foundation and Phase 4 PDF/EPUB reader engines are implemented. Durable reading tools, native, sync, and online-service components remain phased work.
+This is the target architecture. Delivery is staged by `docs/roadmap.md`; the local persistence/library/PWA foundation, PDF/EPUB reader engines, and Phase 5 durable reading tools are implemented. Knowledge management, native, sync, and online-service components remain phased work.
 
 ## Product invariants
 
@@ -157,7 +157,7 @@ Only the format-specific member matching `format` is present. Required fields va
 
 ### IndexedDB
 
-IndexedDB is the initial structured database on PWA and Capacitor targets. It is accessed through repositories, never directly from components. Phase 2 implements database `reader-local-library` at version 2 with `books`, `progress`, `settings`, and retryable `binary-cleanup` stores. Later phase migrations add bookmarks, highlights, notes, collections, statistics, search indexes, sync queue items, and sync metadata.
+IndexedDB is the initial structured database on PWA and Capacitor targets. It is accessed through repositories, never directly from components. Phase 5 uses database `reader-local-library` at version 3 with `books`, `progress`, `settings`, retryable `binary-cleanup`, `bookmarks`, `highlights`, and `notes` stores. Later phase migrations add collections, statistics, search indexes, sync queue items, and sync metadata.
 
 Each migration:
 
@@ -209,7 +209,7 @@ Import spans untrusted parsing, binary storage, and IndexedDB, so it follows a r
 
 Duplicate detection may be added with content hashes, but a hash cannot replace the application UUID. Import never calls Spring Boot.
 
-Deleting a book atomically removes its book/progress records and records binary cleanup intent in IndexedDB. OPFS deletion then clears that intent; startup retries failures after an interruption. Future dependent stores extend this transaction in their owning phase. If binary deletion fails after structured cleanup, the recoverable cleanup record is retained and the UI reports cleanup is pending.
+Deleting a book atomically removes its book, progress, bookmark, highlight, and note records and records binary cleanup intent in IndexedDB. OPFS deletion then clears that intent; startup retries failures after an interruption. Future dependent stores extend this transaction in their owning phase. If binary deletion fails after structured cleanup, the recoverable cleanup record is retained and the UI reports cleanup is pending.
 
 ## Reader engine architecture
 

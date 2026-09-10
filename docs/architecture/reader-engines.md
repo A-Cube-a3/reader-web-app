@@ -35,7 +35,7 @@ subscribe(eventListener)
 close()
 ```
 
-Events have stable application meanings: `state`, `location`, `selection`, and `error`. An `external-link` event is a safe notification; it does not navigate. React owns transient screen state and renders controls, but it never stores PDF.js/Foliate objects and does not persist progress. Phase 5 will debounce `location` events into the local progress repository and restore the last committed locator through `ReaderService`.
+Events have stable application meanings: `state`, `location`, `selection`, and `error`. An `external-link` event is a safe notification; it does not navigate. React owns transient screen state and renders controls, but it never stores PDF.js/Foliate objects. Phase 5's `ReaderToolsSession` consumes `location` events, debounces them into the local progress repository, flushes at lifecycle/close boundaries, and restores the last committed locator through `ReaderService`.
 
 `close()` cancels rendering, removes DOM/event handlers, unloads publication sections, revokes engine-managed blob resources, destroys the PDF document/worker, and drops subscriptions. Reader failures are contained to the reader route; the library remains available.
 
@@ -90,7 +90,7 @@ A content-document CFI (including the package-to-content `!` indirection) is req
 - Page jump/next/previous emit normalized PDF locators.
 - Outline destinations are resolved lazily into application locators.
 - Search requests text page-by-page without rendering canvases and return at most 200 results.
-- Selection reports exact text plus normalized page rectangles; Phase 5 will persist annotation anchors.
+- Selection reports exact text plus normalized page rectangles and capture rotation; Phase 5 persists those stable anchors and paints current-page highlights below the selectable text layer.
 - `ResizeObserver` refits the current page when the reading viewport changes.
 
 The engine currently reads the OPFS `File` into a typed array before handing it to PDF.js. It does not keep those bytes in React state and does not render all pages. True range streaming from OPFS is deferred until measurements show it is necessary.
@@ -107,7 +107,8 @@ Supported Phase 4 behavior:
 - CFI resume/jump/location reporting;
 - selected text with quote context;
 - incremental section search capped at 200 matches;
-- bounded theme/typography hooks in the engine contract (persistence arrives in Phase 5).
+- bounded, locally persisted theme/typography preferences;
+- CFI-backed highlights through Foliate's annotation overlayer, with unresolved CFIs skipped rather than blocking the reader.
 
 EPUB HTML, SVG, CSS, links, and assets are untrusted. See ADR-002 for the pre-blob sanitizer, CSP, live-document pass, external-link interception, and remaining Phase 10 audit work. Scripted EPUB is deliberately unsupported.
 
@@ -119,7 +120,8 @@ The web platform adapter maps `/read/<book UUID>` to a reader session without ex
 - next/previous buttons and Arrow/Page/Space keyboard navigation;
 - PDF page jump, zoom, fit, and rotate controls;
 - EPUB paginated/scrolling flow;
-- responsive side panel, loading, scoped error, and blocked-external-link states.
+- bookmark, highlight, note, annotation search, and format-specific preference panels;
+- responsive side panel, loading, scoped error, stale-anchor recovery, and blocked-external-link states.
 
 Direct offline navigation is covered by the Phase 3 shell fallback. A valid direct reader URL still resolves its book and binary only from IndexedDB/OPFS.
 
@@ -144,10 +146,8 @@ Keep Spring Boot and MongoDB stopped, then:
 
 Phase 4 was exercised in a clean headless Chromium profile with generated two-page PDF and two-chapter EPUB fixtures. The run observed PDF canvas/text/search/page navigation, EPUB rendering/TOC/search, two OPFS files, a service-worker-controlled offline direct-route reopen, no publication-script marker, no remote publication request, and no `/api` request. Selection, visual layout, zoom/fit/rotation appearance, and assistive-technology behavior still require human inspection because DOM assertions cannot establish their visual quality.
 
-## Known Phase 4 limits
+## Current reader limits
 
-- Reading position is emitted but not persisted until Phase 5; Continue Reading still reflects only records already present in the progress repository.
-- EPUB reader preferences are session-only until the Phase 5 settings work.
 - PDF search is literal case-insensitive matching with a result cap; it does not yet index stemming or OCR image-only pages.
 - EPUB search is section-based and may take noticeable time on large publications.
 - PDF link/annotation layers, password prompts, forms, signatures, and advanced two-page layout are not implemented.
