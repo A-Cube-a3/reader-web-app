@@ -50,6 +50,7 @@ export default function App({
   const recentBooks = useMemo(() => getRecentBooks(books), [books])
 
   useEffect(() => {
+    if (readerBookId) return undefined
     let active = true
     async function initialize() {
       try {
@@ -73,7 +74,7 @@ export default function App({
     }
     initialize()
     return () => { active = false }
-  }, [libraryService])
+  }, [libraryService, readerBookId])
 
   async function refreshStorage() {
     try {
