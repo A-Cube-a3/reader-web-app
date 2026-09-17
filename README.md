@@ -2,7 +2,7 @@
 
 Reader is being rebuilt as a local-first PDF and EPUB application. The React application will own core reading data and work without an account, Spring Boot, MongoDB, or a network connection. Spring Boot and MongoDB remain as an optional cloud companion.
 
-Phase 5 adds durable offline progress, resume, bookmarks, highlights, notes, annotation search, and format-specific reader preferences to the installable PDF/EPUB PWA. All reading state is committed to IndexedDB through local repositories; no account, Spring Boot process, MongoDB process, or network request is involved. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
+Phase 6 completes the account-free offline workflow with collections, reading status, favorites, an all-books knowledge workspace, local Markdown/text/PDF exports, and honest local reading statistics. All library and reading state is committed to IndexedDB through local repositories; book files remain in OPFS, and none of these features requires Spring Boot, MongoDB, an account, or a network request. The retained `POST /api/books/upload` endpoint is a deprecated legacy path and is not used by the React application.
 
 ## Repository
 
@@ -57,6 +57,8 @@ Do not commit the resulting `.env`. See [docs/setup/configuration.md](docs/setup
 The [PWA/offline guide](docs/offline/pwa.md) documents installation, cache/update semantics, offline reopening, and troubleshooting. The [local storage guide](docs/offline/local-storage.md) covers the data model, durability, quota, and deletion recovery. Keep original book files backed up: clearing site data removes this device's caches, IndexedDB, and OPFS data, and cloud backup is not implemented yet.
 
 The [reader engine architecture](docs/architecture/reader-engines.md) documents PDF/EPUB capabilities, normalized locators, and security controls. The [offline reading-tools guide](docs/architecture/reading-tools.md) covers progress autosave, annotations, preferences, search, recovery, and manual checks. [ADR-002](docs/architecture/adr-002-epub-renderer.md) records the EPUB renderer spike and decision.
+
+The [knowledge, export, and statistics guide](docs/offline/knowledge-and-export.md) documents collections, annotation tags, deletion behavior, export contents, activity approximations, and an offline validation checklist.
 
 ## Current API
 

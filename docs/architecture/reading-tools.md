@@ -45,7 +45,7 @@ EPUB preferences include font size, serif/sans-serif family, line spacing, conte
 
 ## Search and user interface
 
-Reader search runs the engine's bounded local book-text search and an in-memory scan of the current book's loaded note/highlight records. Results are labeled by source and jump through normalized locators. Search is literal and case-insensitive; it does not provide stemming, OCR for image-only PDFs, or a persistent full-text index. Phase 6 adds cross-book knowledge views; Phase 10 may introduce measured worker/index improvements.
+Reader search runs the engine's bounded local book-text search and an in-memory scan of the current book's loaded note/highlight records. Results are labeled by source and jump through normalized locators. Search is literal and case-insensitive; it does not provide stemming, OCR for image-only PDFs, or a persistent full-text index. Phase 6 adds cross-book knowledge filtering over loaded local annotations; Phase 10 may introduce measured worker/index improvements.
 
 The reader header exposes Contents, Search, Reading tools, Preferences, and one-action bookmarking. The reading-tools panel lists source jumps and deletion controls, supports book/location notes and note editing, and keeps failures scoped to the reader. Selecting engine text opens keyboard-focusable controls for a color highlight or a highlight-linked note. Arrow keys, Page Up/Down, Space, and the existing buttons remain available when focus is outside form controls.
 
@@ -70,7 +70,7 @@ Visual selection geometry, theme contrast, mobile layout, keyboard focus order, 
 
 ## Known limits
 
-- Search is per-open-book and not a cross-library index; Phase 6 owns the knowledge workspace.
+- Reader text search remains per-open-book. The Phase 6 knowledge workspace filters notes/highlights across books but is not a persistent full-text index.
 - Image-only/scanned PDFs need OCR that is not currently provided.
 - PDF highlights without measurable selection rectangles retain quote/location anchors but cannot be painted reliably.
 - Publication changes can invalidate CFIs or page anchors; records are preserved and surfaced as unresolved rather than guessed onto unrelated text.
