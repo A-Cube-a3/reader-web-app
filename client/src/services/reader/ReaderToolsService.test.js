@@ -63,9 +63,24 @@ describe('ReaderToolsService', () => {
     await expect(session.jumpTo({ locator: pdfLocator(1) })).rejects.toBeInstanceOf(UnresolvedReadingAnchorError)
     await session.close()
   })
+
+  it('records reader activity and pauses it on lifecycle flushes', async () => {
+    const activitySession = { recordLocation: vi.fn(), flush: vi.fn(), close: vi.fn() }
+    const activityTracker = { start: vi.fn().mockResolvedValue(activitySession) }
+    const harness = createHarness({ activityTracker })
+    const session = await harness.service.start({ book: harness.book, engine: harness.engine, loaded: await harness.service.load(harness.book) })
+    harness.engine.emitLocation(pdfLocator(2))
+    expect(activityTracker.start).toHaveBeenCalledWith({ book: expect.objectContaining({ id: bookId }), locator: pdfLocator(1) })
+    expect(activitySession.recordLocation).toHaveBeenCalledWith(pdfLocator(2))
+    const flush = harness.lifecycle.subscribeFlush.mock.calls[0][0]
+    flush()
+    await vi.waitFor(() => expect(activitySession.flush).toHaveBeenCalledWith({ pause: true }))
+    await session.close()
+    expect(activitySession.close).toHaveBeenCalledOnce()
+  })
 })
 
-function createHarness({ progress = null } = {}) {
+function createHarness({ progress = null, activityTracker = null } = {}) {
   const book = { id: bookId, format: 'pdf', title: 'Local book' }
   const bookmarkRepository = memoryRepository()
   const highlightRepository = memoryRepository()
@@ -96,6 +111,7 @@ function createHarness({ progress = null } = {}) {
     noteRepository,
     preferencesRepository,
     lifecycle,
+    activityTracker,
     idFactory: () => ids[idIndex++],
     clock: () => '2026-09-10T10:00:00.000Z',
     debounceMs: 100,
