@@ -37,7 +37,7 @@ export const pwaOptions = {
     ],
   },
   workbox: {
-    globPatterns: ['**/*.{html,js,mjs,css,png,svg}'],
+    globPatterns: ['**/*.{html,js,mjs,css,png,svg,ttf}'],
     globIgnores: [
       'icons/reader-192.png',
       'icons/reader-512.png',

@@ -19,7 +19,7 @@ describe('PWA build configuration', () => {
 
   it('precaches the complete shell and uses a prompt-based update lifecycle', () => {
     expect(pwaOptions).toMatchObject({ registerType: 'prompt', injectRegister: null })
-    expect(pwaOptions.workbox.globPatterns).toContain('**/*.{html,js,mjs,css,png,svg}')
+    expect(pwaOptions.workbox.globPatterns).toContain('**/*.{html,js,mjs,css,png,svg,ttf}')
     expect(pwaOptions.workbox.globIgnores).toContain('icons/reader-maskable-512.png')
     expect(pwaOptions.workbox.navigateFallback).toBe('index.html')
     expect(pwaOptions.workbox.skipWaiting).toBe(false)
