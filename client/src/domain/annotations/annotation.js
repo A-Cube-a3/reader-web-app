@@ -13,6 +13,7 @@ export function createBookmark({ id, bookId, locator, label, now }) {
     label: boundedText(label, 200) || locationLabel(validLocator),
     createdAt: timestamp,
     updatedAt: timestamp,
+    tags: [],
   }
 }
 
@@ -31,6 +32,7 @@ export function createHighlight({ id, bookId, locator, color = 'yellow', now }) 
     color,
     createdAt: timestamp,
     updatedAt: timestamp,
+    tags: [],
   }
 }
 
@@ -46,6 +48,7 @@ export function createNote({ id, bookId, body, highlightId = null, locator = nul
     locator: locator ? validateReadingLocator(locator) : null,
     createdAt: timestamp,
     updatedAt: timestamp,
+    tags: [],
   }
 }
 
@@ -53,6 +56,14 @@ export function updateNote(note, body, now) {
   return {
     ...note,
     body: requiredBody(body),
+    updatedAt: validTimestamp(now),
+  }
+}
+
+export function updateAnnotationTags(annotation, tags, now) {
+  return {
+    ...annotation,
+    tags: normalizeTags(tags),
     updatedAt: validTimestamp(now),
   }
 }
@@ -91,4 +102,12 @@ function requiredBody(value) {
 
 function boundedText(value, limit) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, limit)
+}
+
+function normalizeTags(values) {
+  if (!Array.isArray(values)) throw new TypeError('Annotation tags must be an array')
+  const tags = values
+    .map((value) => boundedText(value, 40).toLocaleLowerCase())
+    .filter(Boolean)
+  return [...new Set(tags)].slice(0, 20)
 }

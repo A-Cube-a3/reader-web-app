@@ -4,6 +4,7 @@ import {
   createHighlight,
   createNote,
   updateNote,
+  updateAnnotationTags,
 } from './annotation.js'
 
 const ids = {
@@ -56,5 +57,11 @@ describe('offline annotation records', () => {
     expect(updateNote(note, 'Edited note', '2026-09-10T01:00:00.000Z'))
       .toMatchObject({ body: 'Edited note', updatedAt: '2026-09-10T01:00:00.000Z' })
     expect(() => updateNote(note, '   ', now)).toThrow(/cannot be empty/)
+  })
+
+  it('normalizes annotation tags for local filtering', () => {
+    const note = createNote({ id: ids.record, bookId: ids.book, body: 'Tagged', now })
+    expect(updateAnnotationTags(note, [' Research ', 'research', 'Deep   Work'], '2026-09-10T01:00:00.000Z').tags)
+      .toEqual(['research', 'deep work'])
   })
 })

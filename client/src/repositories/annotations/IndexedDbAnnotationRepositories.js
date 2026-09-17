@@ -26,6 +26,11 @@ class IndexedDbBookRecordRepository {
     return records.sort((left, right) => left.createdAt.localeCompare(right.createdAt))
   }
 
+  async listAll() {
+    const records = await this.run((database) => database.getAll(this.storeName))
+    return records.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+  }
+
   delete(id) {
     return this.run((database) => database.delete(this.storeName, id))
   }

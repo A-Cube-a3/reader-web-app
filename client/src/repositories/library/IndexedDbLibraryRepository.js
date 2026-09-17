@@ -27,6 +27,8 @@ export class IndexedDbLibraryRepository {
           STORES.BOOKMARKS,
           STORES.HIGHLIGHTS,
           STORES.NOTES,
+          STORES.COLLECTIONS,
+          STORES.READING_ACTIVITY,
           STORES.BINARY_CLEANUP,
         ],
         'readwrite',
@@ -45,6 +47,8 @@ export class IndexedDbLibraryRepository {
       await deleteBookRecords(transaction.objectStore(STORES.BOOKMARKS), bookId)
       await deleteBookRecords(transaction.objectStore(STORES.HIGHLIGHTS), bookId)
       await deleteBookRecords(transaction.objectStore(STORES.NOTES), bookId)
+      await deleteBookRecords(transaction.objectStore(STORES.READING_ACTIVITY), bookId)
+      await removeBookFromCollections(transaction.objectStore(STORES.COLLECTIONS), bookId, timestamp)
       await transaction.objectStore(STORES.PROGRESS).delete(bookId)
       await transaction.objectStore(STORES.BOOKS).delete(bookId)
       await transaction.done
@@ -110,6 +114,21 @@ async function deleteBookRecords(store, bookId) {
   let cursor = await store.index('by-book-id').openKeyCursor(bookId)
   while (cursor) {
     await store.delete(cursor.primaryKey)
+    cursor = await cursor.continue()
+  }
+}
+
+async function removeBookFromCollections(store, bookId, timestamp) {
+  let cursor = await store.openCursor()
+  while (cursor) {
+    const collection = cursor.value
+    if (collection.bookIds.includes(bookId)) {
+      await cursor.update({
+        ...collection,
+        bookIds: collection.bookIds.filter((id) => id !== bookId),
+        updatedAt: timestamp,
+      })
+    }
     cursor = await cursor.continue()
   }
 }

@@ -9,6 +9,8 @@ import {
   IndexedDbNoteRepository,
 } from './annotations/IndexedDbAnnotationRepositories.js'
 import { deleteLocalDatabase, openLocalDatabase } from '../storage/database/schema.js'
+import { IndexedDbCollectionRepository } from './collections/IndexedDbCollectionRepository.js'
+import { IndexedDbReadingActivityRepository } from './statistics/IndexedDbReadingActivityRepository.js'
 
 describe('IndexedDB repositories', () => {
   let database
@@ -20,6 +22,8 @@ describe('IndexedDB repositories', () => {
   let bookmarks
   let highlights
   let notes
+  let collections
+  let activities
 
   beforeEach(async () => {
     databaseName = `reader-repositories-${crypto.randomUUID()}`
@@ -31,6 +35,8 @@ describe('IndexedDB repositories', () => {
     bookmarks = new IndexedDbBookmarkRepository(database)
     highlights = new IndexedDbHighlightRepository(database)
     notes = new IndexedDbNoteRepository(database)
+    collections = new IndexedDbCollectionRepository(database)
+    activities = new IndexedDbReadingActivityRepository(database)
   })
 
   afterEach(async () => {
@@ -72,6 +78,8 @@ describe('IndexedDB repositories', () => {
     await bookmarks.add(annotation('bookmark', 'one'))
     await highlights.add(annotation('highlight', 'one'))
     await notes.add(annotation('note', 'one'))
+    await collections.add({ id: 'shelf', name: 'Shelf', bookIds: ['one'], createdAt: '2026-02-01T00:00:00.000Z', updatedAt: '2026-02-01T00:00:00.000Z' })
+    await activities.put({ id: 'session', bookId: 'one', startedAt: '2026-02-01T00:00:00.000Z' })
 
     await library.deleteBookAndQueueBinaries('one', ['opfs:v1:book', 'opfs:v1:cover'])
 
@@ -80,10 +88,20 @@ describe('IndexedDB repositories', () => {
     expect(await bookmarks.listByBook('one')).toEqual([])
     expect(await highlights.listByBook('one')).toEqual([])
     expect(await notes.listByBook('one')).toEqual([])
+    expect((await collections.get('shelf')).bookIds).toEqual([])
+    expect(await activities.listByBook('one')).toEqual([])
     expect(await library.listBinaryCleanup()).toEqual([
       expect.objectContaining({ reference: 'opfs:v1:book', bookId: 'one', attempts: 0 }),
       expect.objectContaining({ reference: 'opfs:v1:cover', bookId: 'one', attempts: 0 }),
     ])
+  })
+
+  it('persists collections and reading activity through dedicated repositories', async () => {
+    await collections.add({ id: 'second', name: 'Zeta', bookIds: [], createdAt: '2026-02-01T00:00:00.000Z', updatedAt: '2026-02-01T00:00:00.000Z' })
+    await collections.add({ id: 'first', name: 'Alpha', bookIds: [], createdAt: '2026-02-01T00:00:00.000Z', updatedAt: '2026-02-01T00:00:00.000Z' })
+    await activities.put({ id: 'session', bookId: 'one', startedAt: '2026-02-01T00:00:00.000Z' })
+    expect((await collections.list()).map((item) => item.name)).toEqual(['Alpha', 'Zeta'])
+    expect((await activities.listByBook('one')).map((item) => item.id)).toEqual(['session'])
   })
 
   it('persists book-scoped bookmarks, highlights, and editable notes', async () => {
