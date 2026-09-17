@@ -24,7 +24,7 @@ pnpm test
 pnpm build
 ```
 
-Vitest uses jsdom, Testing Library, and `fake-indexeddb`. The suite covers schema v1/v2 migrations into v3; annotation repository CRUD/cascade deletion; normalized anchors; debounced and explicit progress flush; saved-locator recovery; PDF/EPUB highlight adapters; per-format preferences; reader lifecycle events; local annotation search; and reader-route bookmark/highlight/note/preference interactions in addition to the storage, PWA, engine, and untrusted-EPUB tests. Engine modules and platform services are injected in focused tests; production-browser checks with real PDF/EPUB files remain required.
+Vitest uses jsdom, Testing Library, and `fake-indexeddb`. The suite covers migrations through schema v4; collection/activity repository behavior and cascade deletion; statuses/favorites; knowledge editing/tagging/source jumps; local export formatting; bounded activity/streak/month calculations; normalized anchors; progress flushing; saved-locator recovery; PDF/EPUB adapters; preferences; reader lifecycle events; local annotation search; and reader-route interactions in addition to the storage, PWA, engine, and untrusted-EPUB tests. Engine modules and platform services are injected in focused tests; production-browser checks with real PDF/EPUB files remain required.
 
 ## Backend
 
@@ -41,6 +41,6 @@ The JUnit 5, AssertJ, Mockito, and MockMvc suite does not need MongoDB. Phase 1 
 
 ## Manual smoke checks
 
-For the primary flow, keep Spring Boot and MongoDB stopped, start only the production frontend, and follow the [PWA offline-reopen checklist](../offline/pwa.md), [local storage checks](../offline/local-storage.md), [reader-engine checks](../architecture/reader-engines.md), and [reading-tools checks](../architecture/reading-tools.md). Confirm real PDF/EPUB rendering, navigation, progress/resume, annotations, local search, preferences, direct offline reader-route reopening, and cleanup as well as the existing install/import/storage behavior.
+For the primary flow, keep Spring Boot and MongoDB stopped, start only the production frontend, and follow the [PWA offline-reopen checklist](../offline/pwa.md), [local storage checks](../offline/local-storage.md), [reader-engine checks](../architecture/reader-engines.md), [reading-tools checks](../architecture/reading-tools.md), and [knowledge/export checks](../offline/knowledge-and-export.md). Confirm real PDF/EPUB rendering, navigation, progress/resume, annotations, organization, exports, statistics, direct offline reader-route reopening, and cleanup.
 
 The deprecated backend endpoint can be regression-checked separately with MongoDB available by sending multipart field `file` to `POST /api/books/upload`. Confirm the response omits `filePath` and includes `Deprecation: true`. The React UI deliberately has no control for this endpoint.

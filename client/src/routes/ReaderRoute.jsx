@@ -3,7 +3,7 @@ import './ReaderRoute.css'
 
 const EMPTY_TOOLS = { bookmarks: [], highlights: [], notes: [], preferences: {}, restoreWarning: null }
 
-export default function ReaderRoute({ bookId, readerService, navigation }) {
+export default function ReaderRoute({ bookId, readerService, navigation, initialLocator = null }) {
   const stageRef = useRef(null)
   const [session, setSession] = useState(null)
   const [readerState, setReaderState] = useState(null)
@@ -27,7 +27,7 @@ export default function ReaderRoute({ bookId, readerService, navigation }) {
       setSelection(null)
       setToolsState(EMPTY_TOOLS)
       try {
-        const nextSession = await readerService.open(bookId)
+        const nextSession = await readerService.open(bookId, { locator: initialLocator })
         openedSession = nextSession
         if (!active) {
           await closeSession(nextSession)
@@ -70,7 +70,7 @@ export default function ReaderRoute({ bookId, readerService, navigation }) {
       unsubscribeTools()
       void closeSession(openedSession)
     }
-  }, [bookId, readerService])
+  }, [bookId, initialLocator, readerService])
 
   useEffect(() => {
     function onKeyDown(event) {

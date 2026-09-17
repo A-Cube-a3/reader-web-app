@@ -15,7 +15,7 @@ afterEach(async () => {
 })
 
 describe('local database schema', () => {
-  it('creates every Phase 5 store and index from a fresh database', async () => {
+  it('creates every Phase 6 store and index from a fresh database', async () => {
     const name = databaseName()
     const database = await openLocalDatabase({ name })
 
@@ -24,9 +24,11 @@ describe('local database schema', () => {
       STORES.BINARY_CLEANUP,
       STORES.BOOKMARKS,
       STORES.BOOKS,
+      STORES.COLLECTIONS,
       STORES.HIGHLIGHTS,
       STORES.NOTES,
       STORES.PROGRESS,
+      STORES.READING_ACTIVITY,
       STORES.SETTINGS,
     ])
 
@@ -112,6 +114,39 @@ describe('local database schema', () => {
       'by-book-id',
       'by-highlight-id',
     ])
+    upgraded.close()
+  })
+
+  it('upgrades version three without changing annotations', async () => {
+    const name = databaseName()
+    const versionThree = await openDB(name, 3, {
+      upgrade(database) {
+        const books = database.createObjectStore(STORES.BOOKS, { keyPath: 'id' })
+        books.createIndex('by-updated-at', 'updatedAt')
+        books.createIndex('by-imported-at', 'importedAt')
+        books.createIndex('by-format', 'format')
+        books.createIndex('by-reading-status', 'readingStatus')
+        books.createIndex('by-favorite', 'favorite')
+        database.createObjectStore(STORES.PROGRESS, { keyPath: 'bookId' })
+        database.createObjectStore(STORES.SETTINGS, { keyPath: 'key' })
+        database.createObjectStore(STORES.BINARY_CLEANUP, { keyPath: 'reference' })
+        const bookmarks = database.createObjectStore(STORES.BOOKMARKS, { keyPath: 'id' })
+        bookmarks.createIndex('by-book-id', 'bookId')
+        const highlights = database.createObjectStore(STORES.HIGHLIGHTS, { keyPath: 'id' })
+        highlights.createIndex('by-book-id', 'bookId')
+        const notes = database.createObjectStore(STORES.NOTES, { keyPath: 'id' })
+        notes.createIndex('by-book-id', 'bookId')
+        notes.createIndex('by-highlight-id', 'highlightId')
+      },
+    })
+    const note = { id: 'note', bookId: 'book', body: 'Preserved', updatedAt: '2026-01-01T00:00:00.000Z' }
+    await versionThree.put(STORES.NOTES, note)
+    versionThree.close()
+
+    const upgraded = await openLocalDatabase({ name })
+    expect(await upgraded.get(STORES.NOTES, 'note')).toEqual(note)
+    expect([...upgraded.transaction(STORES.COLLECTIONS).store.indexNames]).toEqual(['by-updated-at'])
+    expect([...upgraded.transaction(STORES.READING_ACTIVITY).store.indexNames]).toEqual(['by-book-id', 'by-started-at'])
     upgraded.close()
   })
 })

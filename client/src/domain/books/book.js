@@ -95,6 +95,26 @@ export function updateBookMetadata(book, changes, now = new Date().toISOString()
   return nextBook
 }
 
+export function updateBookOrganization(book, changes, now = new Date().toISOString()) {
+  const nextBook = { ...book }
+  let changed = false
+  if (Object.hasOwn(changes, 'readingStatus')) {
+    if (!Object.values(READING_STATUSES).includes(changes.readingStatus)) {
+      throw new TypeError('Reading status is unsupported')
+    }
+    nextBook.readingStatus = changes.readingStatus
+    changed ||= nextBook.readingStatus !== book.readingStatus
+  }
+  if (Object.hasOwn(changes, 'favorite')) {
+    if (typeof changes.favorite !== 'boolean') throw new TypeError('Favorite must be true or false')
+    nextBook.favorite = changes.favorite
+    changed ||= nextBook.favorite !== book.favorite
+  }
+  if (!changed) return book
+  nextBook.updatedAt = now
+  return nextBook
+}
+
 export function titleFromFilename(filename) {
   const normalized = normalizeFilename(filename)
   const withoutExtension = normalized.replace(/\.(pdf|epub)$/i, '').trim()

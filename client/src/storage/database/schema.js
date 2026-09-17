@@ -1,7 +1,7 @@
 import { deleteDB, openDB } from 'idb'
 
 export const DATABASE_NAME = 'reader-local-library'
-export const DATABASE_VERSION = 3
+export const DATABASE_VERSION = 4
 
 export const STORES = Object.freeze({
   BOOKS: 'books',
@@ -11,6 +11,8 @@ export const STORES = Object.freeze({
   BOOKMARKS: 'bookmarks',
   HIGHLIGHTS: 'highlights',
   NOTES: 'notes',
+  COLLECTIONS: 'collections',
+  READING_ACTIVITY: 'reading-activity',
 })
 
 export function openLocalDatabase({ name = DATABASE_NAME, version = DATABASE_VERSION } = {}) {
@@ -59,6 +61,15 @@ export async function runMigrations(database, oldVersion, newVersion, transactio
     const notes = database.createObjectStore(STORES.NOTES, { keyPath: 'id' })
     notes.createIndex('by-book-id', 'bookId')
     notes.createIndex('by-highlight-id', 'highlightId')
+  }
+
+  if (oldVersion < 4 && targetVersion >= 4) {
+    const collections = database.createObjectStore(STORES.COLLECTIONS, { keyPath: 'id' })
+    collections.createIndex('by-updated-at', 'updatedAt')
+
+    const activity = database.createObjectStore(STORES.READING_ACTIVITY, { keyPath: 'id' })
+    activity.createIndex('by-book-id', 'bookId')
+    activity.createIndex('by-started-at', 'startedAt')
   }
 }
 

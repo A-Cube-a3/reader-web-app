@@ -15,6 +15,7 @@ export class ReaderToolsService {
     highlightRepository,
     noteRepository,
     preferencesRepository,
+    activityTracker = null,
     lifecycle = null,
     idFactory = () => globalThis.crypto.randomUUID(),
     clock = () => new Date().toISOString(),
@@ -27,6 +28,7 @@ export class ReaderToolsService {
       highlightRepository,
       noteRepository,
       preferencesRepository,
+      activityTracker,
       lifecycle,
       idFactory,
       clock,
@@ -93,11 +95,15 @@ export class ReaderToolsSession {
   }
 
   async start() {
+    this.activitySession = await this.service.activityTracker?.start({
+      book: this.book,
+      locator: this.currentLocator,
+    })
     this.unsubscribeEngine = this.engine.subscribe((event) => {
       if (event.type === 'location') this.recordLocation(event.locator)
     })
     this.unsubscribeLifecycle = this.service.lifecycle?.subscribeFlush(() => {
-      void this.flush().catch((error) => this.emitError(error))
+      void this.flush({ pause: true }).catch((error) => this.emitError(error))
     }) || (() => {})
     if (this.currentLocator) this.progressWriter.schedule(this.currentLocator)
     await this.engine.setHighlights?.(this.highlights)
@@ -121,6 +127,7 @@ export class ReaderToolsSession {
   recordLocation(locator) {
     this.currentLocator = validateReadingLocator(locator, this.book.format)
     this.progressWriter.schedule(this.currentLocator)
+    this.activitySession?.recordLocation(this.currentLocator)
   }
 
   async addBookmark(label = '') {
@@ -242,10 +249,13 @@ export class ReaderToolsSession {
     return preferences
   }
 
-  flush() {
+  async flush({ pause = false } = {}) {
     const locator = this.engine.getCurrentLocator() || this.currentLocator
     if (locator) this.progressWriter.schedule(locator)
-    return this.progressWriter.flush()
+    await Promise.all([
+      this.progressWriter.flush(),
+      this.activitySession?.flush({ pause }),
+    ])
   }
 
   async close() {
@@ -253,7 +263,8 @@ export class ReaderToolsSession {
     this.closed = true
     this.unsubscribeEngine?.()
     this.unsubscribeLifecycle?.()
-    await this.flush()
+    await this.progressWriter.flush()
+    await this.activitySession?.close()
     this.listeners.clear()
   }
 
