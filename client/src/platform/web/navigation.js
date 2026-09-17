@@ -3,6 +3,7 @@ const READER_PATH = /^\/read\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
 export function createWebNavigation(windowObject = globalThis.window) {
   const listeners = new Set()
   let snapshot = readBookId(windowObject?.location?.pathname)
+  let pendingLocator = null
 
   function update() {
     const next = readBookId(windowObject?.location?.pathname)
@@ -21,11 +22,17 @@ export function createWebNavigation(windowObject = globalThis.window) {
         if (listeners.size === 0) windowObject?.removeEventListener('popstate', update)
       }
     },
-    openReader(bookId) {
+    openReader(bookId, locator = null) {
+      pendingLocator = locator
       windowObject?.history?.pushState({}, '', `/read/${encodeURIComponent(bookId)}`)
       update()
     },
+    getReaderLocator(bookId) {
+      if (snapshot !== bookId) return null
+      return pendingLocator
+    },
     openLibrary() {
+      pendingLocator = null
       windowObject?.history?.pushState({}, '', '/')
       update()
     },

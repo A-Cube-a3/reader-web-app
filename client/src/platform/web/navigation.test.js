@@ -29,4 +29,19 @@ describe('web reader navigation', () => {
     expect(navigation.getSnapshot()).toBeNull()
     expect(listener).toHaveBeenCalledTimes(2)
   })
+
+  it('passes a source locator in memory without placing private context in the URL', () => {
+    const windowObject = {
+      location: { pathname: '/' },
+      history: { pushState: vi.fn((_, __, path) => { windowObject.location.pathname = path }) },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    const navigation = createWebNavigation(windowObject)
+    const locator = { version: 1, format: 'pdf', progression: 0, pdf: { page: 1, pageCount: 2 } }
+    navigation.openReader('123e4567-e89b-12d3-a456-426614174000', locator)
+    expect(navigation.getReaderLocator('123e4567-e89b-12d3-a456-426614174000')).toEqual(locator)
+    expect(navigation.getReaderLocator('123e4567-e89b-12d3-a456-426614174000')).toEqual(locator)
+    expect(windowObject.location.pathname).toBe('/read/123e4567-e89b-12d3-a456-426614174000')
+  })
 })

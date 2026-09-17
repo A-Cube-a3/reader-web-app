@@ -7,12 +7,16 @@ describe('offline local library App', () => {
   let pwaService
   let navigation
   let readerService
+  let knowledgeService
+  let exportService
 
   beforeEach(() => {
     libraryService = createLibraryService()
     pwaService = createPwaService()
     navigation = createNavigation()
     readerService = { open: vi.fn() }
+    knowledgeService = createKnowledgeService()
+    exportService = { create: vi.fn() }
   })
 
   it('boots dashboard and catalog views from local state without a cloud API', async () => {
@@ -103,6 +107,28 @@ describe('offline local library App', () => {
     expect(navigation.openReader).toHaveBeenCalledWith('book-1')
   })
 
+  it('updates status, favorite, and collection membership through the local knowledge service', async () => {
+    const existing = book({ readingStatus: 'want-to-read', favorite: false })
+    libraryService.initialize.mockResolvedValue([existing])
+    knowledgeService.load.mockImplementation(async (books = []) => ({
+      books,
+      collections: [{ id: 'collection', name: 'Research', bookIds: [], updatedAt: '2026-09-17T00:00:00.000Z' }],
+      notes: [], highlights: [], tags: [],
+      statistics: { completedBooks: 0, totalReadingTimeMs: 0, pdfPagesVisitedEstimate: 0, epubLocationChanges: 0, activeDays: 0, currentStreakDays: 0, monthlyActivity: [] },
+    }))
+    knowledgeService.updateBookOrganization.mockResolvedValue({ ...existing, readingStatus: 'completed', favorite: true })
+    renderApp()
+    const catalog = await screen.findByRole('region', { name: 'My Library' })
+    fireEvent.click(within(catalog).getByRole('button', { name: /Existing Book/ }))
+    const details = screen.getByLabelText('Book details')
+    fireEvent.change(within(details).getByLabelText('Reading status'), { target: { value: 'completed' } })
+    fireEvent.click(within(details).getByRole('checkbox', { name: 'Favorite' }))
+    fireEvent.click(within(details).getByRole('checkbox', { name: 'Research' }))
+    fireEvent.click(within(details).getByRole('button', { name: 'Save organization' }))
+    await waitFor(() => expect(knowledgeService.updateBookOrganization).toHaveBeenCalledWith(existing.id, { readingStatus: 'completed', favorite: true }))
+    expect(knowledgeService.setBookInCollection).toHaveBeenCalledWith('collection', existing.id, true)
+  })
+
   it('keeps storage and import failures recoverable without losing the catalog', async () => {
     libraryService.initialize.mockResolvedValue([book()])
     libraryService.inspectStorage.mockRejectedValue(new Error('Storage estimate failed.'))
@@ -141,6 +167,8 @@ describe('offline local library App', () => {
     return render(<App
       libraryService={libraryService}
       readerService={readerService}
+      knowledgeService={knowledgeService}
+      exportService={exportService}
       pwaService={pwaService}
       navigation={navigation}
     />)
@@ -155,6 +183,24 @@ function createLibraryService() {
     importBook: vi.fn(),
     updateBook: vi.fn(),
     deleteBook: vi.fn(),
+  }
+}
+
+function createKnowledgeService() {
+  return {
+    load: vi.fn(async (books = []) => ({
+      books,
+      collections: [],
+      notes: [],
+      highlights: [],
+      tags: [],
+      statistics: { completedBooks: 0, totalReadingTimeMs: 0, pdfPagesVisitedEstimate: 0, epubLocationChanges: 0, activeDays: 0, currentStreakDays: 0, monthlyActivity: [] },
+    })),
+    createCollection: vi.fn(),
+    renameCollection: vi.fn(),
+    deleteCollection: vi.fn(),
+    setBookInCollection: vi.fn(),
+    updateBookOrganization: vi.fn(),
   }
 }
 

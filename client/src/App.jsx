@@ -4,6 +4,9 @@ import { localApplication } from './app/createLocalLibrary.js'
 import { webPwaService } from './platform/web/pwaService.js'
 import { webNavigation } from './platform/web/navigation.js'
 import ReaderRoute from './routes/ReaderRoute.jsx'
+import KnowledgeRoute from './routes/KnowledgeRoute.jsx'
+import StatisticsRoute from './routes/StatisticsRoute.jsx'
+import { READING_STATUSES } from './domain/books/book.js'
 import {
   filterLibrary,
   getContinueReading,
@@ -13,14 +16,21 @@ import {
 export default function App({
   libraryService = localApplication.library,
   readerService = localApplication.reader,
+  knowledgeService = localApplication.knowledge,
+  exportService = localApplication.export,
   pwaService = webPwaService,
   navigation = webNavigation,
 }) {
   const [books, setBooks] = useState([])
+  const [knowledge, setKnowledge] = useState({ collections: [], notes: [], highlights: [], tags: [], statistics: emptyStatistics(), books: [] })
+  const [view, setView] = useState('library')
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectedBookId, setSelectedBookId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [formatFilter, setFormatFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [collectionFilter, setCollectionFilter] = useState('all')
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState(null)
@@ -42,10 +52,14 @@ export default function App({
     () => books.find(({ id }) => id === selectedBookId) || null,
     [books, selectedBookId],
   )
-  const filteredBooks = useMemo(
-    () => filterLibrary(books, { query: searchQuery, format: formatFilter }),
-    [books, searchQuery, formatFilter],
-  )
+  const filteredBooks = useMemo(() => {
+    const metadataMatches = filterLibrary(books, { query: searchQuery, format: formatFilter })
+    const collection = knowledge.collections.find((item) => item.id === collectionFilter)
+    return metadataMatches
+      .filter((book) => statusFilter === 'all' || book.readingStatus === statusFilter)
+      .filter((book) => !favoritesOnly || book.favorite)
+      .filter((book) => !collection || collection.bookIds.includes(book.id))
+  }, [books, collectionFilter, favoritesOnly, formatFilter, knowledge.collections, searchQuery, statusFilter])
   const continueReading = useMemo(() => getContinueReading(books), [books])
   const recentBooks = useMemo(() => getRecentBooks(books), [books])
 
@@ -53,28 +67,39 @@ export default function App({
     if (readerBookId) return undefined
     let active = true
     async function initialize() {
+      const storageResult = libraryService.inspectStorage()
+        .then((status) => ({ status }))
+        .catch((cause) => ({ cause }))
       try {
         const localBooks = await libraryService.initialize()
-        if (active) setBooks(localBooks)
+        const localKnowledge = await knowledgeService.load(localBooks)
+        if (active) {
+          setBooks(localBooks)
+          setKnowledge(localKnowledge)
+        }
       } catch (cause) {
         if (active) setError(messageFor(cause))
       } finally {
         if (active) setLoading(false)
       }
 
-      try {
-        const status = await libraryService.inspectStorage()
+      const { status, cause } = await storageResult
+      if (status) {
         if (active) {
           setStorage(status)
           setStorageError(null)
         }
-      } catch (cause) {
-        if (active) setStorageError(messageFor(cause))
-      }
+      } else if (active) setStorageError(messageFor(cause))
     }
     initialize()
     return () => { active = false }
-  }, [libraryService, readerBookId])
+  }, [knowledgeService, libraryService, readerBookId])
+
+  async function refreshKnowledge(nextBooks = books) {
+    const snapshot = await knowledgeService.load(nextBooks)
+    setKnowledge(snapshot)
+    return snapshot
+  }
 
   async function refreshStorage() {
     try {
@@ -99,7 +124,9 @@ export default function App({
     clearMessages()
     try {
       const imported = await libraryService.importBook(selectedFile)
-      setBooks((current) => [imported, ...current])
+      const nextBooks = [imported, ...books]
+      setBooks(nextBooks)
+      await refreshKnowledge(nextBooks)
       setSelectedBookId(imported.id)
       setSelectedFile(null)
       form.reset()
@@ -143,7 +170,9 @@ export default function App({
     clearMessages()
     try {
       const result = await libraryService.deleteBook(selectedBook.id)
-      setBooks((current) => current.filter(({ id }) => id !== selectedBook.id))
+      const nextBooks = books.filter(({ id }) => id !== selectedBook.id)
+      setBooks(nextBooks)
+      await refreshKnowledge(nextBooks)
       setSelectedBookId(null)
       setNotice(result.cleanupPending
         ? 'Book removed. Private file cleanup will retry automatically.'
@@ -184,7 +213,7 @@ export default function App({
   }
 
   if (readerBookId) {
-    return <ReaderRoute bookId={readerBookId} readerService={readerService} navigation={navigation} />
+    return <ReaderRoute bookId={readerBookId} initialLocator={navigation.getReaderLocator?.(readerBookId)} readerService={readerService} navigation={navigation} />
   }
 
   return (
@@ -194,11 +223,12 @@ export default function App({
           <img src="/icons/reader.svg" alt="" width="48" height="48" />
           <div>
             <p className="eyebrow">Local-first reader</p>
-            <h1>My Library</h1>
+            <h1>{view === 'library' ? 'My Library' : view === 'knowledge' ? 'Knowledge' : 'Statistics'}</h1>
             <p className="headerCopy">Private books, ready without an account or server.</p>
           </div>
         </div>
         <div className="headerActions">
+          <nav className="appNav" aria-label="Application"><button aria-current={view === 'library' ? 'page' : undefined} onClick={() => setView('library')} type="button">Library</button><button aria-current={view === 'knowledge' ? 'page' : undefined} onClick={() => setView('knowledge')} type="button">Knowledge</button><button aria-current={view === 'statistics' ? 'page' : undefined} onClick={() => setView('statistics')} type="button">Statistics</button></nav>
           {!pwa.online && <span className="offlineBadge" role="status">Offline · local library ready</span>}
           {pwa.installAvailable && !pwa.installed && (
             <button className="secondaryButton" type="button" onClick={() => pwaService.install()}>
@@ -223,7 +253,7 @@ export default function App({
         {error && <p className="message errorMessage" role="alert">{error}</p>}
         {notice && <p className="message successMessage" role="status">{notice}</p>}
 
-        <section className="dashboardGrid" aria-label="Library overview">
+        {view === 'knowledge' ? <KnowledgeRoute snapshot={{ ...knowledge, books }} service={knowledgeService} exportService={exportService} navigation={navigation} onRefresh={() => refreshKnowledge()} onError={(cause) => setError(messageFor(cause))} onNotice={setNotice} /> : view === 'statistics' ? <StatisticsRoute statistics={knowledge.statistics} /> : <><section className="dashboardGrid" aria-label="Library overview">
           <LibraryStrip
             title="Continue Reading"
             eyebrow="Pick up where you left off"
@@ -296,6 +326,11 @@ export default function App({
                 ))}
               </div>
             </div>
+            <div className="organizationFilters">
+              <label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option><option value={READING_STATUSES.WANT_TO_READ}>Want to Read</option><option value={READING_STATUSES.CURRENTLY_READING}>Currently Reading</option><option value={READING_STATUSES.COMPLETED}>Completed</option><option value={READING_STATUSES.DROPPED}>Dropped</option></select></label>
+              <label>Collection<select value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}><option value="all">All collections</option>{knowledge.collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}</select></label>
+              <label className="favoriteFilter"><input type="checkbox" checked={favoritesOnly} onChange={(event) => setFavoritesOnly(event.target.checked)} /> Favorites only</label>
+            </div>
 
             {loading ? (
               <p className="emptyState">Opening your local library…</p>
@@ -336,6 +371,19 @@ export default function App({
                 onSave={saveMetadata}
                 onDelete={deleteBook}
                 onOpen={() => navigation.openReader(selectedBook.id)}
+                collections={knowledge.collections}
+                onOrganize={async (changes, collectionIds) => {
+                  setWorking(true)
+                  clearMessages()
+                  try {
+                    const updated = await knowledgeService.updateBookOrganization(selectedBook.id, changes)
+                    for (const collection of knowledge.collections) await knowledgeService.setBookInCollection(collection.id, selectedBook.id, collectionIds.includes(collection.id))
+                    const nextBooks = books.map((book) => book.id === updated.id ? { ...updated, progress: book.progress } : book)
+                    setBooks(nextBooks)
+                    await refreshKnowledge(nextBooks)
+                    setNotice('Book organization saved locally.')
+                  } catch (cause) { setError(messageFor(cause)) } finally { setWorking(false) }
+                }}
               />
             ) : (
               <div className="detailPlaceholder">
@@ -346,6 +394,8 @@ export default function App({
             )}
           </aside>
         </div>
+        <CollectionsManager collections={knowledge.collections} service={knowledgeService} onRefresh={() => refreshKnowledge()} onError={(cause) => setError(messageFor(cause))} onNotice={setNotice} />
+        </>}
       </main>
     </div>
   )
@@ -443,9 +493,9 @@ function StorageSummary({ storage, onRequest }) {
   )
 }
 
-function BookDetails({ book, disabled, onSave, onDelete, onOpen }) {
+function BookDetails({ book, collections, disabled, onSave, onDelete, onOpen, onOrganize }) {
   return (
-    <form className="detailsForm" onSubmit={onSave}>
+    <div className="detailsForm">
       <div className="detailTitle">
         <span className="formatBadge">{book.format}</span>
         <div>
@@ -453,7 +503,7 @@ function BookDetails({ book, disabled, onSave, onDelete, onOpen }) {
           <p>{book.originalFilename}</p>
         </div>
       </div>
-      <label>Title<input name="title" defaultValue={book.title} required /></label>
+      <form onSubmit={onSave}><label>Title<input name="title" defaultValue={book.title} required /></label>
       <label>Author<input name="author" defaultValue={book.author} /></label>
       <label>Publisher<input name="publisher" defaultValue={book.publisher} /></label>
       <div className="fieldRow">
@@ -466,16 +516,30 @@ function BookDetails({ book, disabled, onSave, onDelete, onOpen }) {
         <div><dt>Pages</dt><dd>{book.pageCount || '—'}</dd></div>
         <div><dt>Metadata</dt><dd>{book.metadataSource?.type || 'filename'}</dd></div>
       </dl>
-      <div className="detailActions">
-        <button className="primaryButton" disabled={disabled} onClick={onOpen} type="button">Open book</button>
+      <div className="detailActions"><button className="primaryButton" disabled={disabled} onClick={onOpen} type="button">Open book</button>
         <button className="primaryButton" disabled={disabled} type="submit">Save details</button>
         <button className="dangerButton" disabled={disabled} onClick={onDelete} type="button">
           Delete local book
         </button>
       </div>
-      <small className="deleteNote">Deleting also removes this book's saved local progress.</small>
-    </form>
+      <small className="deleteNote">Deleting also removes this book's local progress, annotations, activity, and collection membership.</small>
+      </form>
+      <form className="organizationForm" onSubmit={(event) => {
+        event.preventDefault()
+        const form = new FormData(event.currentTarget)
+        void onOrganize({ readingStatus: form.get('readingStatus'), favorite: form.get('favorite') === 'on' }, form.getAll('collections'))
+      }}><h3>Organization</h3><label>Reading status<select name="readingStatus" defaultValue={book.readingStatus}><option value={READING_STATUSES.WANT_TO_READ}>Want to Read</option><option value={READING_STATUSES.CURRENTLY_READING}>Currently Reading</option><option value={READING_STATUSES.COMPLETED}>Completed</option><option value={READING_STATUSES.DROPPED}>Dropped</option></select></label><label className="checkLabel"><input name="favorite" type="checkbox" defaultChecked={book.favorite} /> Favorite</label>{collections.length > 0 && <fieldset><legend>Collections</legend>{collections.map((collection) => <label className="checkLabel" key={collection.id}><input name="collections" type="checkbox" value={collection.id} defaultChecked={collection.bookIds.includes(book.id)} /> {collection.name}</label>)}</fieldset>}<button className="secondaryButton" disabled={disabled} type="submit">Save organization</button></form>
+    </div>
   )
+}
+
+function CollectionsManager({ collections, service, onRefresh, onError, onNotice }) {
+  async function run(action, message) { try { await action(); await onRefresh(); onNotice(message) } catch (cause) { onError(cause) } }
+  return <section className="collectionsPanel"><div><p className="eyebrow">Shelves</p><h2>Collections</h2><p>Deleting a collection never deletes its books.</p></div><form onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const name = new FormData(form).get('name'); void run(() => service.createCollection(name), 'Collection created locally.').then(() => form.reset()) }}><input name="name" aria-label="New collection name" placeholder="New collection" required /><button type="submit">Create</button></form><ul>{collections.map((collection) => <li key={collection.id}><form onSubmit={(event) => { event.preventDefault(); void run(() => service.renameCollection(collection.id, new FormData(event.currentTarget).get('name')), 'Collection renamed.') }}><input name="name" aria-label={`Rename ${collection.name}`} defaultValue={collection.name} required /><span>{collection.bookIds.length} books</span><button type="submit">Rename</button><button className="dangerText" type="button" onClick={() => void run(() => service.deleteCollection(collection.id), 'Collection deleted; its books remain in the library.')}>Delete</button></form></li>)}</ul></section>
+}
+
+function emptyStatistics() {
+  return { completedBooks: 0, totalReadingTimeMs: 0, pdfPagesVisitedEstimate: 0, epubLocationChanges: 0, activeDays: 0, currentStreakDays: 0, monthlyActivity: [] }
 }
 
 function formatBytes(bytes = 0) {

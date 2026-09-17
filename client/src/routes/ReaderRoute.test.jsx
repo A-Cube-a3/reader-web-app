@@ -37,6 +37,14 @@ describe('ReaderRoute', () => {
     expect(screen.getByRole('button', { name: /Library/ })).toBeInTheDocument()
   })
 
+  it('opens directly at a knowledge-record source locator', async () => {
+    const engine = fakeEngine()
+    const readerService = { open: vi.fn().mockResolvedValue({ book: book(), engine }) }
+    render(<ReaderRoute bookId="book-id" initialLocator={engine.locator} readerService={readerService} navigation={{ openLibrary: vi.fn() }} />)
+    await screen.findByText('Local Book')
+    expect(readerService.open).toHaveBeenCalledWith('book-id', { locator: engine.locator })
+  })
+
   it('exposes offline bookmarks, selected-text highlights, notes, and preferences', async () => {
     const engine = fakeEngine()
     const tools = fakeTools()

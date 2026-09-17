@@ -2,6 +2,8 @@ import { IndexedDbBooksRepository } from '../repositories/books/IndexedDbBooksRe
 import { IndexedDbLibraryRepository } from '../repositories/library/IndexedDbLibraryRepository.js'
 import { IndexedDbProgressRepository } from '../repositories/progress/IndexedDbProgressRepository.js'
 import { IndexedDbSettingsRepository } from '../repositories/settings/IndexedDbSettingsRepository.js'
+import { IndexedDbCollectionRepository } from '../repositories/collections/IndexedDbCollectionRepository.js'
+import { IndexedDbReadingActivityRepository } from '../repositories/statistics/IndexedDbReadingActivityRepository.js'
 import {
   IndexedDbBookmarkRepository,
   IndexedDbHighlightRepository,
@@ -16,6 +18,9 @@ import { OpfsBookBinaryStorage } from '../storage/binary/OpfsBookBinaryStorage.j
 import { openLocalDatabase } from '../storage/database/schema.js'
 import { createDefaultReaderRegistry } from '../reader/core/ReaderEngineRegistry.js'
 import { webReaderLifecycle } from '../platform/web/readerLifecycle.js'
+import { ReadingActivityTracker } from '../services/statistics/ReadingActivityTracker.js'
+import { LibraryKnowledgeService } from '../services/knowledge/LibraryKnowledgeService.js'
+import { KnowledgeExportService } from '../services/export/KnowledgeExportService.js'
 
 export function createLocalLibrary({ database = openLocalDatabase(), binaryStorage } = {}) {
   const booksRepository = new IndexedDbBooksRepository(database)
@@ -25,7 +30,10 @@ export function createLocalLibrary({ database = openLocalDatabase(), binaryStora
   const bookmarkRepository = new IndexedDbBookmarkRepository(database)
   const highlightRepository = new IndexedDbHighlightRepository(database)
   const noteRepository = new IndexedDbNoteRepository(database)
+  const collectionRepository = new IndexedDbCollectionRepository(database)
+  const activityRepository = new IndexedDbReadingActivityRepository(database)
   const preferencesRepository = new ReaderPreferencesRepository(settingsRepository)
+  const activityTracker = new ReadingActivityTracker({ repository: activityRepository })
 
   const library = new LocalLibraryService({
     booksRepository,
@@ -35,8 +43,18 @@ export function createLocalLibrary({ database = openLocalDatabase(), binaryStora
     metadataService: new BookMetadataService(),
   })
 
+  const knowledge = new LibraryKnowledgeService({
+    booksRepository,
+    collectionRepository,
+    highlightRepository,
+    noteRepository,
+    activityRepository,
+  })
+
   return {
     library,
+    knowledge,
+    export: new KnowledgeExportService(),
     reader: new ReaderService({
       libraryService: library,
       engineRegistry: createDefaultReaderRegistry(),
@@ -47,6 +65,7 @@ export function createLocalLibrary({ database = openLocalDatabase(), binaryStora
         highlightRepository,
         noteRepository,
         preferencesRepository,
+        activityTracker,
         lifecycle: webReaderLifecycle,
       }),
     }),
@@ -58,6 +77,8 @@ export function createLocalLibrary({ database = openLocalDatabase(), binaryStora
       highlights: highlightRepository,
       notes: noteRepository,
       preferences: preferencesRepository,
+      collections: collectionRepository,
+      readingActivity: activityRepository,
     },
   }
 }
